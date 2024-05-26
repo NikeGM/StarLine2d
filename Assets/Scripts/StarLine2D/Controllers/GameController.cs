@@ -149,9 +149,6 @@ namespace StarLine2D.Controllers
             var playerPosition = playerCell.gameObject.transform.position;
             var enemyPosition = enemyCell.gameObject.transform.position;
             
-            playerPosition.y = 0.3f;
-            enemyPosition.y = 0.3f;
-            
             var player = Instantiate(playerPrefab, playerPosition, Quaternion.identity);
             var enemy = Instantiate(enemyPrefab, enemyPosition, Quaternion.identity);
             
