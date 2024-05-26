@@ -7,20 +7,21 @@ using UnityEngine;
 
 namespace StarLine2D.Controllers
 {
-    [RequireComponent(typeof(OnClickAggregateComponent))]
+    [RequireComponent(typeof(OnClickComponent))]
     public class FieldController : MonoBehaviour
     {
         [SerializeField] private CellController cellPrefab;
         [SerializeField] [Range(1, 15)] private int gridRadius = 5;
 
-        private OnClickAggregateComponent _onClick;
+        private OnClickComponent _onClick;
         private List<CellController> _cells = new();
         private CubeGridModel cubeGridModel;
 
-        public OnClickAggregateComponent OnClick => _onClick;
+        public OnClickComponent OnClick => _onClick;
         public List<CellController> Cells => _cells;
 
         private bool _initialized = false;
+        private float _cellSize;
 
         public void Initialize()
         {
@@ -30,7 +31,7 @@ namespace StarLine2D.Controllers
             _cells = GetComponentsInChildren<CellController>().ToList();
             _cells.ForEach(item => item.Initialize());
 
-            _onClick = GetComponent<OnClickAggregateComponent>();
+            _onClick = GetComponent<OnClickComponent>();
             
             _initialized = true;
         }
@@ -58,10 +59,20 @@ namespace StarLine2D.Controllers
 
         public Vector3 GetCellPosition(CubeCellModel cellModel)
         {
-            var posX = 3f / 2 * cellModel.Q;
-            var posY = 0f;
-            var posZ = Mathf.Sqrt(3) / 2 * cellModel.Q + Mathf.Sqrt(3) * cellModel.R;
-            return new Vector3(posX, posY, posZ);
+            var posY = _cellSize * 3f / 2 * cellModel.Q;
+            var posX = _cellSize * (Mathf.Sqrt(3) / 2 * cellModel.Q + Mathf.Sqrt(3) * cellModel.R);
+            
+            // var posX = _cellSize * (Mathf.Sqrt(3) * cellModel.Q + sqrt(3)/2 * hex.r)
+            // var y = size * (                         3./2 * hex.r)
+            return new Vector3(posX, posY, 0);
+        }
+        
+        private void CalcCellSize()
+        {
+            var tmpCell = Instantiate(cellPrefab, transform);
+            var cellCollider = tmpCell.GetComponent<Collider2D>();
+            _cellSize = cellCollider.bounds.size.y / 2;
+            DestroyImmediate(tmpCell);
         }
 
         public List<CellController> GetNeighbors(CellController cell, int radius)
@@ -84,6 +95,7 @@ namespace StarLine2D.Controllers
         [ContextMenu("Generate Grid")]
         private List<CellController> GenerateGrid()
         {
+            CalcCellSize();
             ClearGrid();
 
             var model = new CubeGridModel(gridRadius);

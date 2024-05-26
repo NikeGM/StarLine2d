@@ -1,5 +1,6 @@
 using System;
 using StarLine2D.Utils;
+using UnityEngine;
 
 namespace StarLine2D.Components
 {
@@ -7,14 +8,14 @@ namespace StarLine2D.Components
     {
         private bool _hover = false;
         
-        public void OnHoverStarted()
+        public void OnHoverStarted(GameObject target)
         {
             _hover = true;
             var state = base.GetCurrentState();
             SetState(state);
         }
 
-        public void OnHoverFinished()
+        public void OnHoverFinished(GameObject target)
         {
             _hover = false;
             var state = base.GetCurrentState();

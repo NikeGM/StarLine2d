@@ -5,14 +5,17 @@ using UnityEngine;
 
 namespace StarLine2D.Components
 {
+    [RequireComponent(typeof(SpriteRenderer))]
     public class DisplayStateComponent : MonoBehaviour
     {
         [SerializeField] private List<DisplayStateItem> states = new();
 
+        private SpriteRenderer _spriteRenderer;
         private string _currentState;
 
         private void Awake()
         {
+            _spriteRenderer = GetComponent<SpriteRenderer>();
             if (states.Count == 0) return;
 
             _currentState = states[0].Name;
@@ -29,9 +32,9 @@ namespace StarLine2D.Components
             if (!HasState(stateName)) return;
             if (stateName == _currentState) return;
  
-            Flush();
-            GameObject go = states.Find(item => item.Name == stateName).GameObject;
-            go.SetActive(true);
+            var sprite = states.Find(item => item.Name == stateName).Sprite;
+            if (_spriteRenderer is null) _spriteRenderer = GetComponent<SpriteRenderer>();
+            _spriteRenderer.sprite = sprite;
             
             _currentState = stateName;
         }
@@ -46,22 +49,14 @@ namespace StarLine2D.Components
             return GetCurrentState() == stateName;
         }
 
-        private void Flush()
-        {
-            foreach (DisplayStateItem item in states)
-            {
-                item.GameObject.SetActive(false);
-            }
-        }
-
         [Serializable]
         private class DisplayStateItem
         {
             [SerializeField] private string name;
-            [SerializeField] private GameObject gameObject;
+            [SerializeField] private Sprite sprite;
 
             public string Name => name;
-            public GameObject GameObject => gameObject;
+            public Sprite Sprite => sprite;
         }
     }
 }
