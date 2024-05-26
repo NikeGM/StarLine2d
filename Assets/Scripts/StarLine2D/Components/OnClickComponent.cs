@@ -11,12 +11,12 @@ namespace StarLine2D.Components
         [SerializeField] private ClickEvent action;
         private Action<GameObject> _onClicked;
         
-        public void OnClick()
+        public void OnPerformed(GameObject target)
         {
-            action?.Invoke(gameObject);
-            _onClicked?.Invoke(gameObject);
+            action?.Invoke(target);
+            _onClicked?.Invoke(target);
         }
-        
+
         public ActionDisposable Subscribe(Action<GameObject> call)
         {
             _onClicked += call;

@@ -36,14 +36,14 @@ namespace StarLine2D.Controllers
         {
             var player = GetPlayerShip();
             ChangeSelectionState(SelectionStates.Position);
-            player.PositionCell.OnClick.OnClick();
+            OnCellClicked(player.PositionCell.gameObject);
         }
         
         public void OnAttackClicked()
         {
             var player = GetPlayerShip();
             ChangeSelectionState(SelectionStates.Attack);
-            player.PositionCell.OnClick.OnClick();
+            OnCellClicked(player.PositionCell.gameObject);
         }
         
         public IEnumerator TurnFinished()
@@ -71,6 +71,8 @@ namespace StarLine2D.Controllers
         
         private void OnCellClicked(GameObject go)
         {
+            if (go == field.gameObject) return;
+            
             var cell = go.GetComponent<CellController>();
             
             if (cell.DisplayState.Is("default"))
@@ -217,7 +219,7 @@ namespace StarLine2D.Controllers
         private void Shot(ShipController ship)
         {
             var shootCell = ship.ShotCell;
-            shootCell.ShotAnimation();
+            if (shootCell is not null) shootCell.ShotAnimation();
             ship.ShotCell = null;
         }
     }

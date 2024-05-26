@@ -99,11 +99,11 @@ namespace StarLine2D.Controllers
             {
                 StopCoroutine(_rotationCoroutine);
             }
-            
-            var lookPos = target - ship.transform.position;
+
+            var lookPos = Quaternion.Euler(0, 0, 90) * (target - ship.transform.position);
 
             var initialRotation = ship.transform.rotation;
-            var targetRotation = Quaternion.LookRotation(lookPos);
+            var targetRotation = Quaternion.LookRotation(Vector3.forward, lookPos);
 
             if (freezeRotation.X) targetRotation.x = initialRotation.x;
             if (freezeRotation.Y) targetRotation.y = initialRotation.y;
