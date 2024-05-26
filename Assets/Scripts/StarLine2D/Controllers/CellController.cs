@@ -57,11 +57,10 @@ namespace StarLine2D.Controllers
         
         public void ShotAnimation()
         {
-            if (shotAnimation == null) return;
-            var instance = Instantiate(shotAnimation, transform.position + new Vector3(0, 0.5f, 0), Quaternion.identity) as ParticleSystem;
+            if (shotAnimation is null) return;
+            var instance = Instantiate(shotAnimation, transform.position, Quaternion.identity) as ParticleSystem;
             
             instance.transform.SetParent(transform);
-            instance.transform.localPosition = new Vector3(0, 0.5f, 0);
             
             instance.Play();
             

@@ -18,13 +18,8 @@ namespace StarLine2D.Controllers
         public int MoveDistance => moveDistance;
         public MoveController MoveController => moveController;
         
-        private CellController _positionCell;
         public CellController PositionCell { get; set; }
-        
-        private CellController _moveCell;
         public CellController MoveCell { get; set; }
-        
-        private CellController _shotCell;
         public CellController ShotCell { get; set; }
 
         private void Awake()

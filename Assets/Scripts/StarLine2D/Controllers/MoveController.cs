@@ -57,9 +57,9 @@ namespace StarLine2D.Controllers
             yield return GoToSequence(target.position);
         }
 
-        public void GoTo(GameObject target)
+        public IEnumerator GoTo(GameObject target)
         {
-            GoTo(target.transform);
+            yield return GoToSequence(target.transform.position);
         }
 
         public void MoveAt(Vector3 targetPosition)

@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Linq;
 using StarLine2D.Controllers;
 using StarLine2D.UI.Widgets;
@@ -13,6 +14,8 @@ namespace StarLine2D.UI
         private GameController _game;
         private ShipController _player;
         private ShipController _enemy;
+        private Coroutine _turnCoroutine;
+        
         private void Start()
         {
             var ships = FindObjectsOfType<ShipController>();
@@ -46,8 +49,13 @@ namespace StarLine2D.UI
 
         public void OnFinishClicked()
         {
-            StartCoroutine(_game.TurnFinished());
-
+            _turnCoroutine ??= StartCoroutine(TurnFinished());
+        }
+        
+        private IEnumerator TurnFinished()
+        {
+            yield return _game.TurnFinished();
+            _turnCoroutine = null;
         }
     }
 }

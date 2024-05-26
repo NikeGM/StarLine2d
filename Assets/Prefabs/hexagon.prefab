@@ -115,7 +115,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9a1740903b4e24da6b9e703a00a772db, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  shotAnimation: {fileID: 0}
+  shotAnimation: {fileID: 6570423635053424486, guid: fc65de4aa10494837873fdd3ad06eb7f, type: 3}
   debugEnabled: 0
   q: 0
   r: 0

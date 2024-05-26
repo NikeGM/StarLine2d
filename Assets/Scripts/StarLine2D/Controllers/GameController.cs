@@ -193,7 +193,7 @@ namespace StarLine2D.Controllers
         
         private IEnumerator MoveShip(ShipController ship)
         {
-            yield return ship.MoveController.GoTo(ship.MoveCell.transform); // Дожидаемся завершения перемещения
+            if (ship.MoveCell is not null) yield return ship.MoveController.GoTo(ship.MoveCell.transform); // Дожидаемся завершения перемещения
             ship.PositionCell = ship.MoveCell;
             ship.MoveCell = null;
         }
