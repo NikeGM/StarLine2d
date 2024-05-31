@@ -36,6 +36,8 @@ namespace StarLine2D.Controllers
         {
             var player = GetPlayerShip();
             ChangeSelectionState(SelectionStates.Position);
+            Debug.Log(player);
+            Debug.Log(player.PositionCell);
             OnCellClicked(player.PositionCell.gameObject);
         }
         
@@ -43,6 +45,8 @@ namespace StarLine2D.Controllers
         {
             var player = GetPlayerShip();
             ChangeSelectionState(SelectionStates.Attack);
+            Debug.Log(player);
+            Debug.Log(player.PositionCell);
             OnCellClicked(player.PositionCell.gameObject);
         }
         
@@ -219,7 +223,13 @@ namespace StarLine2D.Controllers
         private void Shot(ShipController ship)
         {
             var shootCell = ship.ShotCell;
-            if (shootCell is not null) shootCell.ShotAnimation();
+            shootCell?.ShotAnimation();
+            if (HasShip(shootCell))
+            {
+                var damagedShip = GetShip(shootCell);
+                damagedShip.OnDamage(ship.Damage);
+            }
+
             ship.ShotCell = null;
         }
     }

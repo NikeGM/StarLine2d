@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 4169719772267140468}
   - component: {fileID: 6107039846375062982}
   m_Layer: 0
-  m_Name: Hexagon
+  m_Name: hexagon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -116,6 +116,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   shotAnimation: {fileID: 6570423635053424486, guid: fc65de4aa10494837873fdd3ad06eb7f, type: 3}
+  explosionAnimation: {fileID: 6570423635053424486, guid: 1b2fc406b3d8348d7ab083de297087d6, type: 3}
   debugEnabled: 0
   q: 0
   r: 0

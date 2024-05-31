@@ -10,6 +10,7 @@ namespace StarLine2D.Controllers
     public class CellController : MonoBehaviour
     {
         [SerializeField] private ParticleSystem shotAnimation;
+        [SerializeField] private ParticleSystem explosionAnimation;
         [SerializeField] private bool debugEnabled = true;
         
         [SerializeField] private int q = 0;
@@ -57,8 +58,18 @@ namespace StarLine2D.Controllers
         
         public void ShotAnimation()
         {
-            if (shotAnimation is null) return;
-            var instance = Instantiate(shotAnimation, transform.position, Quaternion.identity) as ParticleSystem;
+            PlayAnimation(shotAnimation);
+        }
+        
+        public void ExplosionAnimation()
+        {
+            PlayAnimation(explosionAnimation);
+        }
+
+        private void PlayAnimation(ParticleSystem particleAnimation)
+        {
+            if (explosionAnimation is null) return;
+            var instance = Instantiate(particleAnimation, transform.position, Quaternion.identity) as ParticleSystem;
             
             instance.transform.SetParent(transform);
             
@@ -66,7 +77,7 @@ namespace StarLine2D.Controllers
             
             Destroy(instance.gameObject, instance.main.duration);
         }
-        
+
         private void Update()
         {
             if (!_text) return;
