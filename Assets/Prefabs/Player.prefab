@@ -134,8 +134,10 @@ MonoBehaviour:
   health:
     value: 1
   moveController: {fileID: 6038296220036402045}
-  moveDistance: 2
+  moveDistance: 1
   shootDistance: 5
+  maxHealthPoints: 100
+  damage: 100
 --- !u!114 &6038296220036402045
 MonoBehaviour:
   m_ObjectHideFlags: 0

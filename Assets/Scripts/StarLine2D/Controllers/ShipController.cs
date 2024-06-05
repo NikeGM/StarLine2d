@@ -14,9 +14,11 @@ namespace StarLine2D.Controllers
         [SerializeField] private int damage = 100;
 
         private int healthPoints;
+        private int score;
 
         public bool IsPlayer => isPlayer;
         public FloatObservableProperty Health => health;
+        public int Score => score;
 
         public int ShootDistance => shootDistance;
         public int MoveDistance => moveDistance;
@@ -44,13 +46,20 @@ namespace StarLine2D.Controllers
             healthPoints = maxHealthPoints;
         }
 
-        public void OnDamage(int inputDamage)
+        public int OnDamage(int inputDamage)
         {
+            int currentHp = HealthPoints;
             HealthPoints -= inputDamage;
-            if (HealthPoints > 0) return;
+            if (HealthPoints > 0) return inputDamage;
             
             PositionCell?.ExplosionAnimation();
             Destroy(gameObject);
+            return currentHp;
+        }
+
+        public void addScore(int outputDamage)
+        {
+            score += outputDamage * 10;
         }
     }
 }

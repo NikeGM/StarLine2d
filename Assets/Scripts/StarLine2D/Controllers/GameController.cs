@@ -227,7 +227,8 @@ namespace StarLine2D.Controllers
             if (HasShip(shootCell))
             {
                 var damagedShip = GetShip(shootCell);
-                damagedShip.OnDamage(ship.Damage);
+                var resultedDamage = damagedShip.OnDamage(ship.Damage);
+                ship.addScore(resultedDamage);
             }
 
             ship.ShotCell = null;
