@@ -132,10 +132,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   isPlayer: 1
   health:
-    value: 1
+    value: 100
   moveController: {fileID: 6038296220036402045}
-  moveDistance: 2
+  moveDistance: 1
   shootDistance: 5
+  maxHealth: 100
+  damage: 10
 --- !u!114 &6038296220036402045
 MonoBehaviour:
   m_ObjectHideFlags: 0

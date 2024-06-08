@@ -219,7 +219,14 @@ namespace StarLine2D.Controllers
         private void Shot(ShipController ship)
         {
             var shootCell = ship.ShotCell;
-            if (shootCell is not null) shootCell.ShotAnimation();
+            shootCell?.ShotAnimation();
+            if (HasShip(shootCell))
+            {
+                var damagedShip = GetShip(shootCell);
+                var resultedDamage = damagedShip.OnDamage(ship.Damage);
+                ship.AddScore(resultedDamage);
+            }
+
             ship.ShotCell = null;
         }
     }

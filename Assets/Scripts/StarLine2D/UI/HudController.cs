@@ -23,14 +23,14 @@ namespace StarLine2D.UI
             var player = ships.First(item => item.IsPlayer);
             if (player != null && playerHealthBar != null)
             {
-                playerHealthBar.Watch(player.Health);
+                playerHealthBar.Watch(player.Health, 0, player.MaxHealth);
             }
             _player = player;
             
             var enemy = ships.First(item => !item.IsPlayer);
             if (enemy != null && enemyHealthBar != null)
             {
-                enemyHealthBar.Watch(enemy.Health);
+                enemyHealthBar.Watch(enemy.Health, 0, enemy.MaxHealth);
             }
             _enemy = enemy;
 

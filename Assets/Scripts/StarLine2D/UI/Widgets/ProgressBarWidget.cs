@@ -1,3 +1,4 @@
+using System;
 using StarLine2D.Utils.Disposable;
 using StarLine2D.Utils.Observables;
 using UnityEngine;
@@ -12,6 +13,9 @@ namespace StarLine2D.UI.Widgets
 
         private readonly CompositeDisposable _trash = new();
 
+        private float _min = 0;
+        private float _max = 1;
+
         private void Awake()
         {
             SetProgress(defaultValue);
@@ -22,14 +26,32 @@ namespace StarLine2D.UI.Widgets
             fill.fillAmount = progress;
         }
 
-        public void Watch(FloatObservableProperty property)
+        public void Watch(IntObservableProperty property, int min, int max)
         {
+            _min = 1f * min;
+            _max = 1f * max;
+            
             _trash.Retain(property.SubscribeAndInvoke(OnPropertyChanged));
         }
 
-        private void OnPropertyChanged(float oldValue, float newValue)
+        private void OnPropertyChanged(int _, int value)
         {
-            SetProgress(newValue);
+            OnPropertyChanged(1f * _, 1f * value);
+        }
+
+        public void Watch(FloatObservableProperty property, float min, float max)
+        {
+            _min = min;
+            _max = max;
+            
+            _trash.Retain(property.SubscribeAndInvoke(OnPropertyChanged));
+        }
+        
+        private void OnPropertyChanged(float _, float value)
+        {
+            var percentage = (value - _min) / (_max - _min);
+            percentage = Mathf.Clamp01(percentage);
+            SetProgress(percentage);
         }
 
         private void OnDestroy()
