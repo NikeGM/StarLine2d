@@ -36,8 +36,6 @@ namespace StarLine2D.Controllers
         {
             var player = GetPlayerShip();
             ChangeSelectionState(SelectionStates.Position);
-            Debug.Log(player);
-            Debug.Log(player.PositionCell);
             OnCellClicked(player.PositionCell.gameObject);
         }
         
@@ -45,8 +43,6 @@ namespace StarLine2D.Controllers
         {
             var player = GetPlayerShip();
             ChangeSelectionState(SelectionStates.Attack);
-            Debug.Log(player);
-            Debug.Log(player.PositionCell);
             OnCellClicked(player.PositionCell.gameObject);
         }
         
@@ -228,7 +224,7 @@ namespace StarLine2D.Controllers
             {
                 var damagedShip = GetShip(shootCell);
                 var resultedDamage = damagedShip.OnDamage(ship.Damage);
-                ship.addScore(resultedDamage);
+                ship.AddScore(resultedDamage);
             }
 
             ship.ShotCell = null;

@@ -1,23 +1,24 @@
 using StarLine2D.Utils.Observables;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace StarLine2D.Controllers
 {
     public class ShipController : MonoBehaviour
     {
         [SerializeField] private bool isPlayer = false;
-        [SerializeField] private FloatObservableProperty health;
+        [SerializeField] private IntObservableProperty health;
         [SerializeField] private MoveController moveController;
         [SerializeField] private int moveDistance = 1;
         [SerializeField] private int shootDistance = 5;
-        [SerializeField] private int maxHealthPoints = 100;
+        [SerializeField] private int maxHealth = 100;
         [SerializeField] private int damage = 100;
 
-        private int healthPoints;
         private int score;
 
         public bool IsPlayer => isPlayer;
-        public FloatObservableProperty Health => health;
+        public IntObservableProperty Health => health;
+        public int MaxHealth => maxHealth;
         public int Score => score;
 
         public int ShootDistance => shootDistance;
@@ -30,12 +31,6 @@ namespace StarLine2D.Controllers
 
         public int Damage => damage;
 
-        private int HealthPoints
-        {
-            get => healthPoints;
-            set => healthPoints = Mathf.Clamp(value, 0, maxHealthPoints);
-        }
-
         private void Awake()
         {
             OnValidate();
@@ -43,21 +38,26 @@ namespace StarLine2D.Controllers
 
         private void OnValidate()
         {
-            healthPoints = maxHealthPoints;
+            health.Clamp(0, maxHealth);
+            health.Validate();
         }
 
         public int OnDamage(int inputDamage)
         {
-            int currentHp = HealthPoints;
-            HealthPoints -= inputDamage;
-            if (HealthPoints > 0) return inputDamage;
-            
-            PositionCell?.ExplosionAnimation();
+            var currentHp = health.Value;
+            health.Value -= inputDamage;
+            if (health.Value > 0) return inputDamage;
+
+            if (PositionCell != null)
+            {
+                PositionCell.ExplosionAnimation();
+            }
             Destroy(gameObject);
+            
             return currentHp;
         }
 
-        public void addScore(int outputDamage)
+        public void AddScore(int outputDamage)
         {
             score += outputDamage * 10;
         }
