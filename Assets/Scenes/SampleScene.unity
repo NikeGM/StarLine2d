@@ -2135,6 +2135,7 @@ MonoBehaviour:
   field: {fileID: 1677296064}
   playerPrefab: {fileID: 8457788082549557393, guid: 75db12a5259484192b4c00383a97d88d, type: 3}
   enemyPrefab: {fileID: 7231466699880770099, guid: b17d8b0242f7d4b249a6543bce156f8e, type: 3}
+  debugAlwaysHit: 1
 --- !u!1001 &688226608
 PrefabInstance:
   m_ObjectHideFlags: 0

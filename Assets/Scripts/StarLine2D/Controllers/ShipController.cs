@@ -48,10 +48,7 @@ namespace StarLine2D.Controllers
             health.Value -= inputDamage;
             if (health.Value > 0) return inputDamage;
 
-            if (PositionCell != null)
-            {
-                PositionCell.ExplosionAnimation();
-            }
+            PositionCell?.ExplosionAnimation();
             Destroy(gameObject);
             
             return currentHp;
