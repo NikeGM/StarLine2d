@@ -55,17 +55,14 @@ namespace StarLine2D.Controllers
 
             FlushCells();
     
-            // Движение и стрельба вражеского корабля
             enemyController?.Move();
             enemyController?.Shot(playerShip);
     
             var isCollision = enemyShip.MoveCell == playerShip.MoveCell;
 
-            // Запускаем движение обоих кораблей одновременно
             var playerMoveCoroutine = StartCoroutine(MoveShip(playerShip));
             var enemyMoveCoroutine = StartCoroutine(MoveShip(enemyShip));
 
-            // Ждем завершения обоих корутин
             yield return playerMoveCoroutine;
             yield return enemyMoveCoroutine;
 

@@ -1,6 +1,5 @@
 using StarLine2D.Utils.Observables;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace StarLine2D.Controllers
 {
