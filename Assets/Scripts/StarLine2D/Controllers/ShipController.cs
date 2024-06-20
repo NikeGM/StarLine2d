@@ -1,6 +1,5 @@
 using StarLine2D.Utils.Observables;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace StarLine2D.Controllers
 {
@@ -48,10 +47,7 @@ namespace StarLine2D.Controllers
             health.Value -= inputDamage;
             if (health.Value > 0) return inputDamage;
 
-            if (PositionCell != null)
-            {
-                PositionCell.ExplosionAnimation();
-            }
+            PositionCell?.ExplosionAnimation();
             Destroy(gameObject);
             
             return currentHp;

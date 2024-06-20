@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Linq; 
 
 namespace StarLine2D.Controllers
 {
@@ -20,19 +21,30 @@ namespace StarLine2D.Controllers
             ship.MoveCell = enemyMoveTarget;
         }
         
-        public void Shot()
+        public void Shot(ShipController playerShip)
         {
             var ship = GetComponent<ShipController>();
             
-            var enemyShotTarget = GetShotCell();
+            var enemyShotTarget = GetShotCell(playerShip);
             ship.ShotCell = enemyShotTarget;
         }
         
-        private CellController GetShotCell()
+        private CellController GetShotCell(ShipController playerShip)
         {
             var ship = GetComponent<ShipController>();
             var cell = ship.PositionCell;
-            return GetRandomCellInRange(cell, ship.ShootDistance);
+            var canShootCells = _field.GetNeighbors(cell, ship.ShootDistance);
+            var enemyNewPositionCells = _field.GetNeighbors(playerShip.PositionCell, playerShip.MoveDistance);
+            
+            var intersectingCells = canShootCells.Intersect(enemyNewPositionCells).ToList();
+            
+            if (intersectingCells.Count == 0)
+            {
+                return null;
+            }
+            
+            var randomIndex = Random.Range(0, intersectingCells.Count);
+            return intersectingCells[randomIndex];
         }
         
         private CellController GetMoveCell()
