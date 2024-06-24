@@ -9,7 +9,10 @@ namespace StarLine2D.UI
     public class HudController : MonoBehaviour
     {
         [SerializeField] private ProgressBarWidget playerHealthBar;
+        [SerializeField] private TextWidget playerScore;
+        
         [SerializeField] private ProgressBarWidget enemyHealthBar;
+        [SerializeField] private TextWidget enemyScore;
 
         private GameController _game;
         private ShipController _player;
@@ -25,12 +28,22 @@ namespace StarLine2D.UI
             {
                 playerHealthBar.Watch(player.Health, 0, player.MaxHealth);
             }
+
+            if (player != null && playerScore != null)
+            {
+                playerScore.Watch(player.Score);
+            }
             _player = player;
             
             var enemy = ships.First(item => !item.IsPlayer);
             if (enemy != null && enemyHealthBar != null)
             {
                 enemyHealthBar.Watch(enemy.Health, 0, enemy.MaxHealth);
+            }
+
+            if (enemy != null && enemyScore != null)
+            {
+                enemyScore.Watch(enemy.Score);
             }
             _enemy = enemy;
 
