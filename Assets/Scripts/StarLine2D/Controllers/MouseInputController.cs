@@ -15,6 +15,15 @@ namespace StarLine2D.Controllers
         private readonly bool[] _isT = new bool[100];
         
         private int _hitsCount = 0;
+        
+        private void Awake()
+        {
+            if (mainCamera == null)
+            {
+                mainCamera = Camera.main;
+            }
+        }
+
 
         public IEnumerable<(T, GameObject)> FilterHits<T>()
         {
@@ -70,10 +79,16 @@ namespace StarLine2D.Controllers
         
         private void Update()
         {
+            if (mainCamera is null || Mouse.current == null)
+            {
+                return;
+            }
+            
             Vector3 mouse = Mouse.current.position.ReadValue();
             var ray = mainCamera.ScreenPointToRay(mouse);
             
             _hitsCount = Physics2D.RaycastNonAlloc(ray.origin, ray.direction, _hits);
         }
+
     }
 }
