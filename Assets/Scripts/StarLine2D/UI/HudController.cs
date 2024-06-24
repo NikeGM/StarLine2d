@@ -14,9 +14,11 @@ namespace StarLine2D.UI
         [SerializeField] private ProgressBarWidget enemyHealthBar;
         [SerializeField] private TextWidget enemyScore;
 
+        [SerializeField] private GameObject uiBlocker;
+
         private GameController _game;
-        private ShipController _player;
-        private ShipController _enemy;
+        private InputController _inputController;
+        
         private Coroutine _turnCoroutine;
         
         private void Start()
@@ -33,7 +35,6 @@ namespace StarLine2D.UI
             {
                 playerScore.Watch(player.Score);
             }
-            _player = player;
             
             var enemy = ships.First(item => !item.IsPlayer);
             if (enemy != null && enemyHealthBar != null)
@@ -45,9 +46,9 @@ namespace StarLine2D.UI
             {
                 enemyScore.Watch(enemy.Score);
             }
-            _enemy = enemy;
 
             _game = FindObjectOfType<GameController>();
+            _inputController = FindObjectOfType<InputController>();
         }
         
         public void OnPositionClicked()
@@ -67,8 +68,24 @@ namespace StarLine2D.UI
         
         private IEnumerator TurnFinished()
         {
+            DisableUI();
+            
             yield return _game.TurnFinished();
+            
+            EnableUI();
             _turnCoroutine = null;
+        }
+
+        private void DisableUI()
+        {
+            if (uiBlocker != null) uiBlocker.SetActive(true);
+            if (_inputController != null) _inputController.gameObject.SetActive(false);
+        }
+
+        private void EnableUI()
+        {
+            if (uiBlocker != null) uiBlocker.SetActive(false);
+            if (_inputController != null) _inputController.gameObject.SetActive(true);
         }
     }
 }
