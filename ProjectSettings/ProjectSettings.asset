@@ -8,7 +8,7 @@ PlayerSettings:
   AndroidProfiler: 0
   AndroidFilterTouchesWhenObscured: 0
   AndroidEnableSustainedPerformanceMode: 0
-  defaultScreenOrientation: 4
+  defaultScreenOrientation: 2
   targetDevice: 2
   useOnDemandResources: 0
   accelerometerFrequency: 60
@@ -895,11 +895,11 @@ PlayerSettings:
   apiCompatibilityLevel: 6
   activeInputHandler: 1
   windowsGamepadBackendHint: 0
-  cloudProjectId: 9b7388de-9379-45ca-8827-4e15c7a513cc
+  cloudProjectId: 1736eac9-a5b4-46ef-8536-3a0423dde708
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
   projectName: Starline2D
-  organizationId: kseyfert93
+  organizationId: abram2767
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
   hmiLoadingImage: {fileID: 0}

@@ -2059,9 +2059,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mainCamera: {fileID: 519420031}
   zoomSpeed: 1
-  moveSpeed: 5
+  moveSpeed: 50
   minZoom: 1
-  maxZoom: 100
+  maxZoom: 3
   panLimitMin: {x: -2.5, y: -2.5}
   panLimitMax: {x: 2.5, y: 2.5}
 --- !u!1001 &568331563

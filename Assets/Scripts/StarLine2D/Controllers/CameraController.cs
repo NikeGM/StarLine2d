@@ -1,5 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
+using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
+using TouchPhase = UnityEngine.InputSystem.TouchPhase;
 
 namespace StarLine2D.Controllers
 {
@@ -24,6 +27,9 @@ namespace StarLine2D.Controllers
 
             moveAction = inputActions["Move"];
             zoomAction = inputActions["Zoom"];
+
+            if (!EnhancedTouchSupport.enabled)
+                EnhancedTouchSupport.Enable();
         }
 
         private void OnEnable()
@@ -56,7 +62,6 @@ namespace StarLine2D.Controllers
         private void HandleMouseInput()
         {
             float scroll = zoomAction.ReadValue<float>();
-            Debug.Log($"Mouse scroll value: {scroll}");
             ZoomCamera(scroll);
         }
 
@@ -70,59 +75,54 @@ namespace StarLine2D.Controllers
 
         private void HandleTouchInput()
         {
-            if (Touchscreen.current.touches.Count == 1)
-            {
-                var touch = Touchscreen.current.touches[0];
+            var touches = Touch.activeTouches;
 
-                if (touch.phase.ReadValue() == UnityEngine.InputSystem.TouchPhase.Began)
+            if (touches.Count == 1)
+            {
+                var touch = touches[0];
+
+                if (touch.phase == TouchPhase.Began)
                 {
-                    touchStart = mainCamera.ScreenToWorldPoint(touch.position.ReadValue());
-                    Debug.Log($"Touch started at: {touch.position.ReadValue()}");
+                    touchStart = mainCamera.ScreenToWorldPoint(touch.screenPosition);
                 }
 
-                if (touch.phase.ReadValue() == UnityEngine.InputSystem.TouchPhase.Moved)
+                if (touch.phase == TouchPhase.Moved)
                 {
-                    Vector3 direction = touchStart - mainCamera.ScreenToWorldPoint(touch.position.ReadValue());
+                    Vector3 direction = touchStart - mainCamera.ScreenToWorldPoint(touch.screenPosition);
                     mainCamera.transform.position += direction * (moveSpeed * Time.deltaTime);
-                    touchStart = mainCamera.ScreenToWorldPoint(touch.position.ReadValue()); // Update touchStart to current position to ensure smooth movement
-                    Debug.Log($"Touch moved. New camera position: {mainCamera.transform.position}");
+                    touchStart = mainCamera.ScreenToWorldPoint(touch.screenPosition); // Обновление touchStart для плавного перемещения
                 }
             }
 
-            if (Touchscreen.current.touches.Count == 2)
+            if (touches.Count == 2)
             {
-                var touchZero = Touchscreen.current.touches[0];
-                var touchOne = Touchscreen.current.touches[1];
+                var touchZero = touches[0];
+                var touchOne = touches[1];
 
-                Vector2 touchZeroPrevPos = touchZero.position.ReadValue() - touchZero.delta.ReadValue();
-                Vector2 touchOnePrevPos = touchOne.position.ReadValue() - touchOne.delta.ReadValue();
+                Vector2 touchZeroPrevPos = touchZero.screenPosition - touchZero.delta;
+                Vector2 touchOnePrevPos = touchOne.screenPosition - touchOne.delta;
 
                 float prevMagnitude = (touchZeroPrevPos - touchOnePrevPos).magnitude;
-                float currentMagnitude = (touchZero.position.ReadValue() - touchOne.position.ReadValue()).magnitude;
+                float currentMagnitude = (touchZero.screenPosition - touchOne.screenPosition).magnitude;
 
                 float difference = currentMagnitude - prevMagnitude;
 
                 ZoomCamera(difference * zoomSpeed * 0.1f);
-                Debug.Log($"Two-finger pinch. Zoom increment: {difference * zoomSpeed * 0.1f}");
             }
         }
 
         private void ZoomCamera(float increment)
         {
-            Debug.Log($"Zoom increment: {increment}");
             float newSize = mainCamera.orthographicSize - increment;
             mainCamera.orthographicSize = Mathf.Clamp(newSize, minZoom, maxZoom);
-            Debug.Log($"New orthographic size: {mainCamera.orthographicSize}");
         }
 
         private void ClampCameraPosition()
         {
             Vector3 pos = mainCamera.transform.position;
-            Debug.Log($"Position before clamping: {pos}");
             pos.x = Mathf.Clamp(pos.x, panLimitMin.x, panLimitMax.x);
             pos.y = Mathf.Clamp(pos.y, panLimitMin.y, panLimitMax.y);
             mainCamera.transform.position = pos;
-            Debug.Log($"Position after clamping: {mainCamera.transform.position}");
         }
     }
 }
