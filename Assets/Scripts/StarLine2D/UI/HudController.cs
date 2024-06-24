@@ -9,11 +9,18 @@ namespace StarLine2D.UI
     public class HudController : MonoBehaviour
     {
         [SerializeField] private ProgressBarWidget playerHealthBar;
+        [SerializeField] private TextWidget playerScore;
+        
         [SerializeField] private ProgressBarWidget enemyHealthBar;
+        [SerializeField] private TextWidget enemyScore;
+
+        [SerializeField] private CountdownWidget turnCountdown;
+
+        [SerializeField] private GameObject uiBlocker;
 
         private GameController _game;
-        private ShipController _player;
-        private ShipController _enemy;
+        private InputController _inputController;
+        
         private Coroutine _turnCoroutine;
         
         private void Start()
@@ -25,16 +32,27 @@ namespace StarLine2D.UI
             {
                 playerHealthBar.Watch(player.Health, 0, player.MaxHealth);
             }
-            _player = player;
+
+            if (player != null && playerScore != null)
+            {
+                playerScore.Watch(player.Score);
+            }
             
             var enemy = ships.First(item => !item.IsPlayer);
             if (enemy != null && enemyHealthBar != null)
             {
                 enemyHealthBar.Watch(enemy.Health, 0, enemy.MaxHealth);
             }
-            _enemy = enemy;
+
+            if (enemy != null && enemyScore != null)
+            {
+                enemyScore.Watch(enemy.Score);
+            }
 
             _game = FindObjectOfType<GameController>();
+            _inputController = FindObjectOfType<InputController>();
+            
+            if (turnCountdown != null) turnCountdown.StartCountdown();
         }
         
         public void OnPositionClicked()
@@ -54,8 +72,26 @@ namespace StarLine2D.UI
         
         private IEnumerator TurnFinished()
         {
+            if (turnCountdown != null) turnCountdown.Flush();
+            DisableUI();
+            
             yield return _game.TurnFinished();
+            
+            EnableUI();
+            if (turnCountdown != null) turnCountdown.StartCountdown();
             _turnCoroutine = null;
+        }
+
+        private void DisableUI()
+        {
+            if (uiBlocker != null) uiBlocker.SetActive(true);
+            if (_inputController != null) _inputController.gameObject.SetActive(false);
+        }
+
+        private void EnableUI()
+        {
+            if (uiBlocker != null) uiBlocker.SetActive(false);
+            if (_inputController != null) _inputController.gameObject.SetActive(true);
         }
     }
 }
