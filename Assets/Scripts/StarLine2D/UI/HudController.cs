@@ -14,6 +14,8 @@ namespace StarLine2D.UI
         [SerializeField] private ProgressBarWidget enemyHealthBar;
         [SerializeField] private TextWidget enemyScore;
 
+        [SerializeField] private CountdownWidget turnCountdown;
+
         [SerializeField] private GameObject uiBlocker;
 
         private GameController _game;
@@ -49,6 +51,8 @@ namespace StarLine2D.UI
 
             _game = FindObjectOfType<GameController>();
             _inputController = FindObjectOfType<InputController>();
+            
+            if (turnCountdown != null) turnCountdown.StartCountdown();
         }
         
         public void OnPositionClicked()
@@ -68,11 +72,13 @@ namespace StarLine2D.UI
         
         private IEnumerator TurnFinished()
         {
+            if (turnCountdown != null) turnCountdown.Flush();
             DisableUI();
             
             yield return _game.TurnFinished();
             
             EnableUI();
+            if (turnCountdown != null) turnCountdown.StartCountdown();
             _turnCoroutine = null;
         }
 
