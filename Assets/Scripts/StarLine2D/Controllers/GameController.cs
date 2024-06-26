@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,6 +24,11 @@ namespace StarLine2D.Controllers
             None,
             Position,
             Attack
+        }
+
+        private void Awake()
+        {
+            Utils.Utils.AddScene("Hud");
         }
 
         public void Start()
