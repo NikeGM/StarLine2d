@@ -79,16 +79,20 @@ namespace StarLine2D.Controllers
         
         private void Update()
         {
-            if (mainCamera is null || Mouse.current == null)
+            UpdateHits();
+        }
+
+        public void UpdateHits()
+        {
+            if (mainCamera is null || Pointer.current == null)
             {
                 return;
             }
             
-            Vector3 mouse = Mouse.current.position.ReadValue();
+            Vector3 mouse = Pointer.current.position.ReadValue();
             var ray = mainCamera.ScreenPointToRay(mouse);
             
             _hitsCount = Physics2D.RaycastNonAlloc(ray.origin, ray.direction, _hits);
         }
-
     }
 }

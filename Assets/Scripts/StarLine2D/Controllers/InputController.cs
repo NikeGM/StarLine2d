@@ -23,6 +23,8 @@ namespace StarLine2D.Controllers
         public void OnClick(InputAction.CallbackContext context)
         {
             if (!_initialized) return;
+            
+            mouseInputController.UpdateHits();
 
             foreach (var pair in mouseInputController.FilterHits<IClickable>())
             {
