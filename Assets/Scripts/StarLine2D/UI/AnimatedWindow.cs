@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using StarLine2D.Singletons;
 using StarLine2D.Utils;
+using StarLine2D.Utils.Disposable;
 using UnityEngine;
 
 namespace StarLine2D.UI
@@ -13,8 +15,7 @@ namespace StarLine2D.UI
 
         private static readonly Dictionary<string, List<AnimatedWindow>> CurrentWindows = new Dictionary<string, List<AnimatedWindow>>();
 
-        public delegate void AnimatedWindowDelegate(AnimatedWindow window);
-        public AnimatedWindowDelegate onClosed;
+        private Action _onClose;
         
         private Animator _animator;
 
@@ -31,7 +32,7 @@ namespace StarLine2D.UI
 
         public virtual void AnimationEventClose()
         {
-            onClosed?.Invoke(this);
+            _onClose?.Invoke();
             Destroy(gameObject);
         }
 
@@ -41,6 +42,12 @@ namespace StarLine2D.UI
             {
                 pair.Value.Remove(GetComponent<AnimatedWindow>());
             }
+        }
+        
+        public ActionDisposable Subscribe(Action call)
+        {
+            _onClose += call;
+            return new ActionDisposable(() => _onClose -= call);
         }
 
         public static AnimatedWindow Open(string path)
