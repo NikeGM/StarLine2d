@@ -281,6 +281,7 @@ GameObject:
   - component: {fileID: 675640049}
   - component: {fileID: 675640048}
   - component: {fileID: 675640052}
+  - component: {fileID: 675640053}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -397,6 +398,19 @@ MonoBehaviour:
   enemyScore: {fileID: 812357122}
   turnCountdown: {fileID: 1828112115}
   uiBlocker: {fileID: 997691113}
+--- !u!114 &675640053
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 675640047}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fc7b4a985b348f48db8132b45ab8832, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  singletonMain: 0
 --- !u!1001 &812357120
 PrefabInstance:
   m_ObjectHideFlags: 0
