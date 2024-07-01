@@ -69,6 +69,15 @@ namespace StarLine2D.UI
         {
             _turnCoroutine ??= StartCoroutine(TurnFinished());
         }
+
+        public void OnPauseClicked()
+        {
+            if (AnimatedWindow.IsOpen("UI/PauseMenuWindow")) return;
+            
+            DisableUI();
+            var pauseWindow = AnimatedWindow.OpenUnique("UI/PauseMenuWindow");
+            pauseWindow.Subscribe(EnableUI);
+        }
         
         private IEnumerator TurnFinished()
         {
