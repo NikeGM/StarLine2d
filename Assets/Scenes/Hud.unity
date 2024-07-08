@@ -393,6 +393,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: acff6651d57d04eddafacf09ff33bccd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  singletonMain: 1
   playerHealthBar: {fileID: 659684917}
   playerScore: {fileID: 174749606}
   enemyHealthBar: {fileID: 590255168}
