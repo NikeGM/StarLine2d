@@ -2,6 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using StarLine2D.Singletons;
+using StarLine2D.UI;
+using StarLine2D.Utils;
 using StarLine2D.Utils.Disposable;
 using UnityEngine;
 
@@ -26,6 +29,9 @@ namespace StarLine2D.Controllers
             Attack
         }
 
+        private bool _isEnded = false;
+        public bool IsEnded => _isEnded;
+
         private void Awake()
         {
             Utils.Utils.AddScene("Hud");
@@ -36,6 +42,7 @@ namespace StarLine2D.Controllers
             field.Initialize();
             _trash.Retain(field.OnClick.Subscribe(OnCellClicked));
             _ships = SetPlayersShips();
+            _isEnded = false;
         }
 
 
@@ -83,6 +90,13 @@ namespace StarLine2D.Controllers
             if (isCollision)
             {
                 OnShipCollision(playerShip, enemyShip);
+            }
+
+            if (playerShip.Health.Value <= 0 || enemyShip.Health.Value <= 0)
+            {
+                _isEnded = true;
+                var hud = SingletonMonoBehaviour.GetInstance<HudSingleton>();
+                hud.ShowResults();
             }
 
             ChangeSelectionState(SelectionStates.None);

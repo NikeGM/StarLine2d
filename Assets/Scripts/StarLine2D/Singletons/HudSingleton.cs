@@ -1,12 +1,14 @@
 using System.Collections;
 using System.Linq;
 using StarLine2D.Controllers;
+using StarLine2D.UI;
 using StarLine2D.UI.Widgets;
+using StarLine2D.Utils;
 using UnityEngine;
 
-namespace StarLine2D.UI
+namespace StarLine2D.Singletons
 {
-    public class HudController : MonoBehaviour
+    public class HudSingleton : SingletonMonoBehaviour
     {
         [SerializeField] private ProgressBarWidget playerHealthBar;
         [SerializeField] private TextWidget playerScore;
@@ -85,6 +87,8 @@ namespace StarLine2D.UI
             DisableUI();
             
             yield return _game.TurnFinished();
+
+            if (_game.IsEnded) yield break;
             
             EnableUI();
             if (turnCountdown != null) turnCountdown.StartCountdown();
@@ -101,6 +105,13 @@ namespace StarLine2D.UI
         {
             if (uiBlocker != null) uiBlocker.SetActive(false);
             if (_inputController != null) _inputController.gameObject.SetActive(true);
+        }
+
+        public void ShowResults()
+        {
+            DisableUI();
+            var win = AnimatedWindow.OpenUnique("UI/ResultsMenuWindow");
+            win.Subscribe(EnableUI);
         }
     }
 }
