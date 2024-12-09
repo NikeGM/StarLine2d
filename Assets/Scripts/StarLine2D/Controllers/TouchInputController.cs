@@ -1,10 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace StarLine2D.Controllers
 {
-    public class MouseInputController : MonoBehaviour
+    public class TouchInputController : MonoBehaviour
     {
         [SerializeField] private Camera mainCamera;
         [SerializeField] private bool propagate = false;
@@ -26,17 +25,17 @@ namespace StarLine2D.Controllers
 
         private void Start()
         {
-            Debug.Log("[MouseInputController] MouseInputController initialized.");
+            Debug.Log("[TouchInputController] TouchInputController initialized.");
         }
 
         public IEnumerable<(T, GameObject)> FilterHits<T>()
         {
             if (_hitsCount > 0)
             {
-                Debug.Log("[MouseInputController] FilterHits<{typeof(T).Name}> started. _hitsCount: {_hitsCount}");
+                Debug.Log("[TouchInputController] FilterHits<{typeof(T).Name}> started. _hitsCount: {_hitsCount}");
             }
             
-            // Логируем каждое попадание и проверяем, есть ли компонент T
+            // Логика обработки касаний
             for (var i = 0; i < _hitsCount; i++)
             {
                 _hasChild[i] = false;
@@ -46,7 +45,7 @@ namespace StarLine2D.Controllers
                 var t = go.GetComponent<T>();
                 _isT[i] = t != null;
 
-                Debug.Log($"[MouseInputController] Hit {_hits[i].collider.name}. Has Component<{typeof(T).Name}>: {_isT[i]}");
+                Debug.Log($"[TouchInputController] Hit {_hits[i].collider.name}. Has Component<{typeof(T).Name}>: {_isT[i]}");
             }
 
             // Проверяем, является ли каждый объект родителем для других объектов
@@ -55,7 +54,7 @@ namespace StarLine2D.Controllers
                 var goI = _hits[i].collider.gameObject;
                 if (!_isT[i]) continue;
 
-                Debug.Log($"[MouseInputController] Object {_hits[i].collider.name} has Component<{typeof(T).Name}>.");
+                Debug.Log($"[TouchInputController] Object {_hits[i].collider.name} has Component<{typeof(T).Name}>.");
 
                 for (var j = 0; j < _hitsCount; j++)
                 {
@@ -67,7 +66,7 @@ namespace StarLine2D.Controllers
                     _hasChild[i] = true;
                     _parents[j] = i;
 
-                    Debug.Log($"[MouseInputController] Object {_hits[j].collider.name} is child of {_hits[i].collider.name}.");
+                    Debug.Log($"[TouchInputController] Object {_hits[j].collider.name} is child of {_hits[i].collider.name}.");
                     
                     break;
                 }
@@ -87,7 +86,7 @@ namespace StarLine2D.Controllers
                     var ts = go.GetComponents<T>();
                     foreach (var t in ts)
                     {
-                        Debug.Log($"[MouseInputController] Filtered result: ({t}, {target})");
+                        Debug.Log($"[TouchInputController] Filtered result: ({t}, {target})");
                         yield return (t, target);
                     }
 
@@ -96,27 +95,33 @@ namespace StarLine2D.Controllers
                 }
             }
 
-            // Debug.Log($"[MouseInputController] FilterHits<{typeof(T).Name}> completed.");
+            // Debug.Log($"[TouchInputController] FilterHits<{typeof(T).Name}> completed.");
         }
         
         private void Update()
         {
-            if (mainCamera is null || Mouse.current == null)
+            if (mainCamera is null)
             {
+                Debug.Log($"Main camera is null");
                 return;
             }
             
-            Vector3 mouse = Mouse.current.position.ReadValue();
-            var ray = mainCamera.ScreenPointToRay(mouse);
-            
-            _hitsCount = Physics2D.RaycastNonAlloc(ray.origin, ray.direction, _hits);
-
-            Debug.Log($"[MouseInputController] Update: Mouse position - {mouse}, Ray origin - {ray.origin}, Ray direction - {ray.direction}, Hits count - {_hitsCount}");
-
-            // Логируем каждое попадание для отладки
-            for (int i = 0; i < _hitsCount; i++)
+            // Обработка ввода с тачскрина
+            for (int i = 0; i < Input.touchCount; i++)
             {
-                Debug.Log($"[MouseInputController] Hit {_hits[i].collider.name} at {_hits[i].point}.");
+                Touch touch = Input.GetTouch(i);
+                Vector3 touchPosition = mainCamera.ScreenToWorldPoint(touch.position);
+                var ray = mainCamera.ScreenPointToRay(touch.position);
+                
+                _hitsCount = Physics2D.RaycastNonAlloc(ray.origin, ray.direction, _hits);
+                
+                Debug.Log($"[TouchInputController] Update: Touch position - {touchPosition}, Ray origin - {ray.origin}, Ray direction - {ray.direction}, Hits count - {_hitsCount}");
+                
+                // Логируем каждое попадание для отладки
+                for (int j = 0; j < _hitsCount; j++)
+                {
+                    Debug.Log($"[TouchInputController] Hit {_hits[j].collider.name} at {_hits[j].point}.");
+                }
             }
         }
     }

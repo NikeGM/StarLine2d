@@ -2273,6 +2273,7 @@ GameObject:
   - component: {fileID: 790762039}
   - component: {fileID: 790762038}
   - component: {fileID: 790762040}
+  - component: {fileID: 790762041}
   m_Layer: 0
   m_Name: InputController
   m_TagString: Untagged
@@ -2367,6 +2368,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mainCamera: {fileID: 519420031}
   propagate: 1
+--- !u!114 &790762041
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 790762036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa972a266b48347e1b7cd225acc3aafd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mainCamera: {fileID: 519420031}
+  propagate: 0
 --- !u!1001 &826462087
 PrefabInstance:
   m_ObjectHideFlags: 0
