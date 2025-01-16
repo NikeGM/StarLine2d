@@ -16,25 +16,38 @@ namespace StarLine2D.UI
         private ShipController _enemy;
         private Coroutine _turnCoroutine;
         
-        private void Start()
+        private void Update()
         {
+            if (_player && _enemy) return;
             var ships = FindObjectsOfType<ShipController>();
 
-            var player = ships.First(item => item.IsPlayer);
+            var player = ships.FirstOrDefault(item => item.IsPlayer);
             if (player != null && playerHealthBar != null)
             {
                 playerHealthBar.Watch(player.Health, 0, player.MaxHealth);
             }
+            else
+            {
+                Debug.LogWarning("Player ship or playerHealthBar not found.");
+            }
             _player = player;
-            
-            var enemy = ships.First(item => !item.IsPlayer);
+
+            var enemy = ships.FirstOrDefault(item => !item.IsPlayer);
             if (enemy != null && enemyHealthBar != null)
             {
                 enemyHealthBar.Watch(enemy.Health, 0, enemy.MaxHealth);
             }
+            else
+            {
+                Debug.LogWarning("Enemy ship or enemyHealthBar not found.");
+            }
             _enemy = enemy;
 
             _game = FindObjectOfType<GameController>();
+            if (_game == null)
+            {
+                Debug.LogError("GameController not found in the scene.");
+            }
         }
         
         public void OnPositionClicked()
@@ -42,11 +55,16 @@ namespace StarLine2D.UI
             _game.OnPositionClicked();
         }
         
-        public void OnAttackClicked()
+        public void OnWeaponClicked_1()
         {
-            _game.OnAttackClicked();
+            _game.OnAttackClicked(0);
         }
 
+        public void OnWeaponClicked_2()
+        {
+            _game.OnAttackClicked(1);
+        }
+        
         public void OnFinishClicked()
         {
             _turnCoroutine ??= StartCoroutine(TurnFinished());

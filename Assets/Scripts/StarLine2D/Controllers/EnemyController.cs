@@ -23,16 +23,19 @@ namespace StarLine2D.Controllers
         public void Shot()
         {
             var ship = GetComponent<ShipController>();
-            
-            var enemyShotTarget = GetShotCell();
-            ship.ShotCell = enemyShotTarget;
+            foreach (var shipWeapon in ship.Weapons)
+            {
+                var enemyShotTarget = GetShotCell(shipWeapon.Range);
+                shipWeapon.ShootCell = enemyShotTarget;
+            }
+
         }
         
-        private CellController GetShotCell()
+        private CellController GetShotCell(int distance)
         {
             var ship = GetComponent<ShipController>();
             var cell = ship.PositionCell;
-            return GetRandomCellInRange(cell, ship.ShootDistance);
+            return GetRandomCellInRange(cell, distance);
         }
         
         private CellController GetMoveCell()

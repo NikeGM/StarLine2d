@@ -70,8 +70,8 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
+  m_SortingLayerID: -1951870899
+  m_SortingLayer: 2
   m_SortingOrder: 1
   m_Sprite: {fileID: -1553473832, guid: dcfff3822a0b8419990ac1439594a40e, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -136,9 +136,18 @@ MonoBehaviour:
     value: 100
   moveController: {fileID: 8599632226084792838}
   moveDistance: 1
-  shootDistance: 5
   maxHealth: 100
-  damage: 10
+  weapons:
+  - damage: 100
+    range: 4
+    type: 0
+    reload: 10
+    shootCell: {fileID: 0}
+  - damage: 20
+    range: 6
+    type: 1
+    reload: 10
+    shootCell: {fileID: 0}
 --- !u!114 &8599632226084792838
 MonoBehaviour:
   m_ObjectHideFlags: 0
