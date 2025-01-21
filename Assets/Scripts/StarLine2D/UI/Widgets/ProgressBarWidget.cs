@@ -1,4 +1,3 @@
-using System;
 using StarLine2D.Utils.Disposable;
 using StarLine2D.Utils.Observables;
 using UnityEngine;
