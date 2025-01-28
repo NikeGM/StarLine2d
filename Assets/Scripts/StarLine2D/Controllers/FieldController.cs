@@ -110,6 +110,14 @@ namespace StarLine2D.Controllers
             return neighbors.Contains(cell);
         }
 
+        public int GetDistance(CellController start, CellController end)
+        {
+            return cubeGridModel.GetDistance(
+                cubeGridModel.FindCellModel(start.Q, start.R, start.S),
+                cubeGridModel.FindCellModel(end.Q, end.R, end.S)
+            );
+        }
+
         public List<CellController> GetLine(CellController start, CellController end)
         {
             var pathModel = cubeGridModel.GetLine(

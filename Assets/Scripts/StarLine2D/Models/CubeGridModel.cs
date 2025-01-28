@@ -164,21 +164,22 @@ namespace StarLine2D.Models
             path.Reverse();
             return path;
         }
-
+        
         public List<CubeCellModel> GetLine(CubeCellModel start, CubeCellModel end)
         {
             var line = new List<CubeCellModel>();
-            int distance = Mathf.Max(Mathf.Abs(start.Q - end.Q), Mathf.Abs(start.R - end.R),
-                Mathf.Abs(start.S - end.S));
+            int distance = Mathf.Max(Mathf.Abs(start.Q - end.Q), Mathf.Abs(start.R - end.R), Mathf.Abs(start.S - end.S));
 
             for (int i = 0; i <= distance; i++)
             {
                 float t = i / (float)distance;
-                var interpolated = CubeLerp(start, end, t);
-                var rounded = CubeRound(interpolated);
-                if (Cells.TryGetValue((rounded.Q, rounded.R, rounded.S), out var cell))
+                var lerpPoint = CubeLerp(start, end, t);
+                var roundedPoint = CubeRound(lerpPoint);
+        
+                if (Cells.TryGetValue((roundedPoint.Q, roundedPoint.R, roundedPoint.S), out var cell))
                 {
-                    line.Add(cell);
+                    if (!line.Contains(cell))
+                        line.Add(cell);
                 }
             }
 
@@ -218,6 +219,11 @@ namespace StarLine2D.Models
             }
 
             return (q, r, s);
+        }
+        
+        public int GetDistance(CubeCellModel a, CubeCellModel b)
+        {
+            return (Mathf.Abs(a.Q - b.Q) + Mathf.Abs(a.R - b.R) + Mathf.Abs(a.S - b.S)) / 2 + 1;
         }
     }
 }

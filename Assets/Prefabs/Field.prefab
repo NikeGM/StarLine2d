@@ -11,7 +11,8 @@ GameObject:
   - component: {fileID: 4165239432796692239}
   - component: {fileID: 293453841080085566}
   - component: {fileID: 7327348940760604951}
-  - component: {fileID: 2109494257703373685}
+  - component: {fileID: 2755446469898077448}
+  - component: {fileID: 6594204092476097922}
   m_Layer: 0
   m_Name: Field
   m_TagString: Untagged
@@ -47,7 +48,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cellPrefab: {fileID: 484335486569090373, guid: 7d27e4a6b81a5467cb57516678671a7f, type: 3}
-  gridRadius: 4
+  cellsStateController: {fileID: 0}
+  gridWidth: 18
+  gridHeight: 14
 --- !u!114 &7327348940760604951
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -63,8 +66,20 @@ MonoBehaviour:
   action:
     m_PersistentCalls:
       m_Calls: []
---- !u!58 &2109494257703373685
-CircleCollider2D:
+--- !u!114 &2755446469898077448
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8979205293048781392}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d643ef6c59664c58abe5e198aef742cf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!61 &6594204092476097922
+BoxCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -95,6 +110,16 @@ CircleCollider2D:
   m_IsTrigger: 1
   m_UsedByEffector: 0
   m_UsedByComposite: 0
-  m_Offset: {x: 0, y: 0}
+  m_Offset: {x: -0.03823948, y: -0.029837847}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0, y: 0}
+    oldSize: {x: 0, y: 0}
+    newSize: {x: 0, y: 0}
+    adaptiveTilingThreshold: 0
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
   serializedVersion: 2
-  m_Radius: 4.84
+  m_Size: {x: 14.842731, y: 9.931261}
+  m_EdgeRadius: 0

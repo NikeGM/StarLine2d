@@ -43,12 +43,15 @@ namespace StarLine2D.Controllers
             if (!player.MoveCell) return;
             var weapon = player.Weapons[index];
 
-            _cellsStateController.SetZone(player.MoveCell, weapon.Range, CellsStateController.WeaponZone, weapon.Type.ToString());
+            _cellsStateController.SetZone(player.MoveCell, weapon.Range, CellsStateController.WeaponZone,
+                weapon.Type.ToString());
             _currentWeapon = index;
         }
 
         public IEnumerator TurnFinished()
         {
+            _cellsStateController.ClearZone();
+            _cellsStateController.ClearStaticCells();
             var playerShip = GetPlayerShip();
 
             yield return StartCoroutine(MoveShip(playerShip));
@@ -73,20 +76,22 @@ namespace StarLine2D.Controllers
 
             var cell = go.GetComponent<CellController>();
             var zone = _cellsStateController.Zone;
-            if ( zone is null ) return;
+            if (zone is null) return;
             if (!field.GetComponent<FieldController>().IsCellInZone(cell, zone.Center, zone.Radius)) return;
-            
+
             if (_cellsStateController.Zone.Type == CellsStateController.MoveZone)
             {
                 _cellsStateController.AddStaticCell("Move", cell, CellsStateController.MovePoint);
                 GetPlayerShip().MoveCell = cell;
+                _cellsStateController.ClearZone();
                 return;
             }
 
             if (_currentWeapon == -1) return;
-            
+
             _cellsStateController.AddStaticCell(_currentWeapon.ToString(), cell, CellsStateController.ShootPoint);
             GetPlayerShip().Weapons[_currentWeapon].ShootCell = cell;
+            _cellsStateController.ClearZone();
         }
 
         private List<ShipController> SetPlayersShips()
@@ -156,13 +161,40 @@ namespace StarLine2D.Controllers
         {
             foreach (var shipWeapon in ship.Weapons)
             {
-                var shootCell = shipWeapon.ShootCell;
-                shootCell?.ShotAnimation();
-                if (HasShip(shootCell))
+                var shootCells = new HashSet<CellController>();
+                var distance = field.GetDistance(ship.PositionCell, shipWeapon.ShootCell);
+                if (distance - 1 > shipWeapon.Range) continue;
+
+                if (shipWeapon.Type == WeaponType.Point)
                 {
-                    var damagedShip = GetShip(shootCell);
-                    var resultedDamage = damagedShip.OnDamage(shipWeapon.Damage);
-                    ship.AddScore(resultedDamage);
+                    shootCells.Add(shipWeapon.ShootCell);
+                }
+
+                if (shipWeapon.Type == WeaponType.Beam)
+                {
+                    var cells = field.GetLine(ship.PositionCell, shipWeapon.ShootCell);
+                    foreach (var cell in cells)
+                    {
+                        shootCells.Add(cell);
+                    }
+                }
+
+                shootCells.ToList().ForEach(cell => cell.ShotAnimation());
+
+                var damagedShips = new HashSet<ShipController>();
+
+                foreach (var shootCell in shootCells)
+                {
+                    if (HasShip(shootCell))
+                    {
+                        var damagedShip = GetShip(shootCell);
+                        if (!damagedShips.Contains(damagedShip))
+                        {
+                            var resultedDamage = damagedShip.OnDamage(shipWeapon.Damage);
+                            ship.AddScore(resultedDamage);
+                            damagedShips.Add(damagedShip);
+                        }
+                    }
                 }
 
                 shipWeapon.ShootCell = null;

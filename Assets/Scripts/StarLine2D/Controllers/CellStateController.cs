@@ -47,13 +47,10 @@ namespace StarLine2D.Controllers
                 }
             }
 
-            if (_currentZone != null && _hoveredCell != null &&
-                _fieldController.IsCellInZone(_hoveredCell, _currentZone.Center, _currentZone.Radius))
-            {
-                _hoveredCell.DisplayState.SetState(_currentZone.Type == MoveZone ? "move-hover" : "weapon-hover", 0.4f);
-            }
+            var hoverInZone = _hoveredCell is not null && _currentZone is not null &&
+                              _fieldController.IsCellInZone(_hoveredCell, _currentZone.Center, _currentZone.Radius);
 
-            if (_currentZone?.WeaponType == "Beam" && _currentZone.Center && _hoveredCell)
+            if (_currentZone?.WeaponType == "Beam" && _currentZone.Center && _hoveredCell && hoverInZone)
             {
                 var hoverZone = _fieldController.GetLine(_currentZone.Center, _hoveredCell);
                 Debug.Log("Hover zone " + hoverZone + " to " + hoverZone.Count );
@@ -61,6 +58,11 @@ namespace StarLine2D.Controllers
                 {
                     cell.DisplayState.SetState("hover-zone");
                 }
+            }
+            
+            if (_currentZone != null && _hoveredCell != null && hoverInZone)
+            {
+                _hoveredCell.DisplayState.SetState(_currentZone.Type == MoveZone ? "move-hover" : "weapon-hover", 0.4f);
             }
             
             foreach (var staticCell in _staticCells.Values)
@@ -71,6 +73,7 @@ namespace StarLine2D.Controllers
 
         public void SetZone(CellController center, int radius, string type, string weaponType)
         {
+            Debug.Log("SetZone called "+ center+" radius="+radius+", type="+type);
             _currentZone = new ZoneModel
             {
                 Center = center,

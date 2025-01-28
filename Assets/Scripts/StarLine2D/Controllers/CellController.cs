@@ -74,7 +74,7 @@ namespace StarLine2D.Controllers
             
             instance.Play();
             
-            Destroy(instance.gameObject, instance.main.duration);
+            // Destroy(instance.gameObject, instance.main.duration);
         }
 
         private void Update()
