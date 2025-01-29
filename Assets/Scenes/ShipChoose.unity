@@ -5766,6 +5766,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Size
       objectReference: {fileID: 0}
+    - target: {fileID: 6854089964942214001, guid: 590ab904cdece473a96c3d632350d648, type: 3}
+      propertyPath: filled
+      value: 0.35
+      objectReference: {fileID: 0}
     - target: {fileID: 7601423623363574032, guid: 590ab904cdece473a96c3d632350d648, type: 3}
       propertyPath: icon
       value: 
