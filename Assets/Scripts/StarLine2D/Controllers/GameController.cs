@@ -54,7 +54,6 @@ namespace StarLine2D.Controllers
             _cellsStateController.ClearStaticCells();
             var playerShip = GetPlayerShip();
 
-            yield return StartCoroutine(MoveShip(playerShip));
 
 
             var enemyShip = GetEnemyShip();
@@ -62,6 +61,7 @@ namespace StarLine2D.Controllers
             enemyController.Move();
             enemyController.Shot();
 
+            yield return StartCoroutine(MoveShip(playerShip));
             yield return StartCoroutine(MoveShip(enemyShip));
 
             Shot(playerShip);
