@@ -2,8 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 using StarLine2D.Components;
 using StarLine2D.Models;
-using UnityEditor;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace StarLine2D.Controllers
 {
@@ -24,7 +27,7 @@ namespace StarLine2D.Controllers
         public CubeGridModel CubeGridModel => cubeGridModel;
         public CellsStateController CellStateController => cellsStateController;
 
-        private bool _initialized = false;
+        private bool _initialized;
         private float _cellHeight;
         private float _cellWidth;
 
@@ -151,7 +154,13 @@ namespace StarLine2D.Controllers
             foreach (var cell in model.Cells.Values)
             {
                 var position = GetCellPosition(cell);
-                var hex = PrefabUtility.InstantiatePrefab(cellPrefab.gameObject, transform) as GameObject;
+                GameObject hex;
+
+#if UNITY_EDITOR
+                hex = PrefabUtility.InstantiatePrefab(cellPrefab.gameObject, transform) as GameObject;
+#else
+                hex = Instantiate(cellPrefab.gameObject, transform);
+#endif
 
                 if (!hex) continue;
                 hex.transform.position = position;

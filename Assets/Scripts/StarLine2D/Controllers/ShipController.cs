@@ -30,17 +30,17 @@ namespace StarLine2D.Controllers
     {
         [SerializeField] private bool isPlayer = false;
         [SerializeField] private IntObservableProperty health;
+        [SerializeField] private IntObservableProperty score;
         [SerializeField] private MoveController moveController;
         [SerializeField] private int moveDistance = 1;
         [SerializeField] private int maxHealth = 100;
         [SerializeField] private List<Weapon> weapons = new List<Weapon>();
 
-        private int score;
-
+        public IntObservableProperty Score => score;
         public bool IsPlayer => isPlayer;
         public IntObservableProperty Health => health;
         public int MaxHealth => maxHealth;
-        public int Score => score;
+
         public int MoveDistance => moveDistance;
         public MoveController MoveController => moveController;
         public List<Weapon> Weapons => weapons;
@@ -56,6 +56,7 @@ namespace StarLine2D.Controllers
         {
             health.Clamp(0, maxHealth);
             health.Validate();
+            score.Validate();
         }
 
         public int OnDamage(int inputDamage)
@@ -64,10 +65,7 @@ namespace StarLine2D.Controllers
             health.Value -= inputDamage;
             if (health.Value > 0) return inputDamage;
 
-            if (PositionCell != null)
-            {
-                PositionCell.ExplosionAnimation();
-            }
+            PositionCell?.ExplosionAnimation();
             Destroy(gameObject);
             
             return currentHp;
@@ -75,7 +73,7 @@ namespace StarLine2D.Controllers
 
         public void AddScore(int outputDamage)
         {
-            score += outputDamage * 10;
+            score.Value += outputDamage * 10;
         }
 
         public void FlushShoots()

@@ -9,16 +9,22 @@ namespace StarLine2D.UI
     public class HudController : MonoBehaviour
     {
         [SerializeField] private ProgressBarWidget playerHealthBar;
+        [SerializeField] private TextWidget playerScore;
+
         [SerializeField] private ProgressBarWidget enemyHealthBar;
+        [SerializeField] private TextWidget enemyScore;
+
+        [SerializeField] private CountdownWidget turnCountdown;
+
+        [SerializeField] private GameObject uiBlocker;
 
         private GameController _game;
-        private ShipController _player;
-        private ShipController _enemy;
+        private InputController _inputController;
+
         private Coroutine _turnCoroutine;
-        
+
         private void Update()
         {
-            if (_player && _enemy) return;
             var ships = FindObjectsOfType<ShipController>();
 
             var player = ships.FirstOrDefault(item => item.IsPlayer);
@@ -26,35 +32,34 @@ namespace StarLine2D.UI
             {
                 playerHealthBar.Watch(player.Health, 0, player.MaxHealth);
             }
-            else
-            {
-                Debug.LogWarning("Player ship or playerHealthBar not found.");
-            }
-            _player = player;
 
-            var enemy = ships.FirstOrDefault(item => !item.IsPlayer);
+            if (player != null && playerScore != null)
+            {
+                playerScore.Watch(player.Score);
+            }
+
+            var enemy = ships.First(item => !item.IsPlayer);
             if (enemy != null && enemyHealthBar != null)
             {
                 enemyHealthBar.Watch(enemy.Health, 0, enemy.MaxHealth);
             }
-            else
+
+            if (enemy != null && enemyScore != null)
             {
-                Debug.LogWarning("Enemy ship or enemyHealthBar not found.");
+                enemyScore.Watch(enemy.Score);
             }
-            _enemy = enemy;
 
             _game = FindObjectOfType<GameController>();
-            if (_game == null)
-            {
-                Debug.LogError("GameController not found in the scene.");
-            }
+            _inputController = FindObjectOfType<InputController>();
+
+            if (turnCountdown != null) turnCountdown.StartCountdown();
         }
-        
+
         public void OnPositionClicked()
         {
             _game.OnPositionClicked();
         }
-        
+
         public void OnWeaponClicked_1()
         {
             _game.OnAttackClicked(0);
@@ -64,16 +69,43 @@ namespace StarLine2D.UI
         {
             _game.OnAttackClicked(1);
         }
-        
+
         public void OnFinishClicked()
         {
             _turnCoroutine ??= StartCoroutine(TurnFinished());
         }
-        
+
+        public void OnPauseClicked()
+        {
+            if (AnimatedWindow.IsOpen("UI/PauseMenuWindow")) return;
+
+            DisableUI();
+            var pauseWindow = AnimatedWindow.OpenUnique("UI/PauseMenuWindow");
+            pauseWindow.Subscribe(EnableUI);
+        }
+
         private IEnumerator TurnFinished()
         {
+            if (turnCountdown != null) turnCountdown.Flush();
+            DisableUI();
+
             yield return _game.TurnFinished();
+
+            EnableUI();
+            if (turnCountdown != null) turnCountdown.StartCountdown();
             _turnCoroutine = null;
+        }
+
+        private void DisableUI()
+        {
+            if (uiBlocker != null) uiBlocker.SetActive(true);
+            if (_inputController != null) _inputController.gameObject.SetActive(false);
+        }
+
+        private void EnableUI()
+        {
+            if (uiBlocker != null) uiBlocker.SetActive(false);
+            if (_inputController != null) _inputController.gameObject.SetActive(true);
         }
     }
 }

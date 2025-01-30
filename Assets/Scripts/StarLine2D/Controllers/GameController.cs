@@ -12,12 +12,17 @@ namespace StarLine2D.Controllers
 
         [SerializeField] private GameObject playerPrefab;
         [SerializeField] private GameObject enemyPrefab;
-
+        [SerializeField] private bool debugAlwaysHit;
         private List<ShipController> _ships = new();
         private readonly CompositeDisposable _trash = new();
         private CellsStateController _cellsStateController;
 
         private int _currentWeapon = -1;
+
+        private void Awake()
+        {
+            Utils.Utils.AddScene("Hud");
+        }
 
         public void Start()
         {
@@ -55,19 +60,27 @@ namespace StarLine2D.Controllers
             var playerShip = GetPlayerShip();
 
 
-
             var enemyShip = GetEnemyShip();
             var enemyController = enemyShip.GetComponent<EnemyController>();
-            enemyController.Move();
-            enemyController.Shot();
+            enemyController?.Move();
+            enemyController?.Shot(playerShip);
 
-            yield return StartCoroutine(MoveShip(playerShip));
-            yield return StartCoroutine(MoveShip(enemyShip));
+            var isCollision = enemyShip.MoveCell == playerShip.MoveCell;
+
+            var playerMoveCoroutine = StartCoroutine(MoveShip(playerShip));
+            var enemyMoveCoroutine = StartCoroutine(MoveShip(enemyShip));
+
+            yield return playerMoveCoroutine;
+            yield return enemyMoveCoroutine;
 
             Shot(playerShip);
             Shot(enemyShip);
-        }
 
+            if (isCollision)
+            {
+                OnShipCollision(playerShip, enemyShip);
+            }
+        }
 
         private void OnCellClicked(GameObject go)
         {
@@ -99,26 +112,26 @@ namespace StarLine2D.Controllers
             var randomCells = field.GetRandomCells(2);
             var playerCell = randomCells[0];
             var enemyCell = randomCells[1];
-
             var playerPosition = playerCell.gameObject.transform.position;
             var enemyPosition = enemyCell.gameObject.transform.position;
-
             var player = Instantiate(playerPrefab, playerPosition, Quaternion.identity);
             var enemy = Instantiate(enemyPrefab, enemyPosition, Quaternion.identity);
-
             var shipsList = new List<ShipController>();
-
             var playerShipController = player.GetComponent<ShipController>();
             var enemyShipController = enemy.GetComponent<ShipController>();
             var enemyController = enemy.GetComponent<EnemyController>();
-
             shipsList.Add(playerShipController);
             shipsList.Add(enemyShipController);
-
             playerShipController.PositionCell = playerCell;
             enemyShipController.PositionCell = enemyCell;
-
             enemyController.Initialize(enemyCell, field);
+            var directionToEnemy = (enemyPosition - playerPosition).normalized;
+            var directionToPlayer = (playerPosition - enemyPosition).normalized;
+
+            player.transform.rotation =
+                Quaternion.Euler(0, 0, Mathf.Atan2(directionToEnemy.y, directionToEnemy.x) * Mathf.Rad2Deg);
+            enemy.transform.rotation =
+                Quaternion.Euler(0, 0, Mathf.Atan2(directionToPlayer.y, directionToPlayer.x) * Mathf.Rad2Deg);
 
             return shipsList;
         }
@@ -146,11 +159,12 @@ namespace StarLine2D.Controllers
         private IEnumerator MoveShip(ShipController ship)
         {
             if (ship.MoveCell is not null)
+            {
                 yield return ship.MoveController.GoTo(ship.MoveCell.transform); // Дожидаемся завершения перемещения
-            ship.PositionCell = ship.MoveCell;
-            ship.MoveCell = null;
+                ship.PositionCell = ship.MoveCell;
+                ship.MoveCell = null;
+            }
         }
-
 
         private void OnDestroy()
         {
@@ -191,14 +205,30 @@ namespace StarLine2D.Controllers
                         if (!damagedShips.Contains(damagedShip))
                         {
                             var resultedDamage = damagedShip.OnDamage(shipWeapon.Damage);
-                            ship.AddScore(resultedDamage);
-                            damagedShips.Add(damagedShip);
+                            if (damagedShip == ship)
+                            {
+                                ship.AddScore(-resultedDamage);
+                            }
+                            else
+                            {
+                                ship.AddScore(resultedDamage);
+                                damagedShips.Add(damagedShip);
+                            }
                         }
                     }
                 }
 
                 shipWeapon.ShootCell = null;
             }
+        }
+
+        private void OnShipCollision(ShipController ship1, ShipController ship2)
+        {
+            int ship1Hp = ship1.Health.Value;
+            int ship2Hp = ship2.Health.Value;
+
+            ship1.OnDamage(ship2Hp);
+            ship2.OnDamage(ship1Hp);
         }
     }
 }

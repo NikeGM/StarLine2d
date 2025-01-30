@@ -7,14 +7,23 @@ namespace StarLine2D.Controllers
     public class MouseInputController : MonoBehaviour
     {
         [SerializeField] private Camera mainCamera;
-        [SerializeField] private bool propagate = false;
+        [SerializeField] private bool propagate;
         
         private readonly RaycastHit2D[] _hits = new RaycastHit2D[100];
         private readonly bool[] _hasChild = new bool[100];
         private readonly int[] _parents = new int[100];
         private readonly bool[] _isT = new bool[100];
         
-        private int _hitsCount = 0;
+        private int _hitsCount;
+        
+        private void Awake()
+        {
+            if (mainCamera == null)
+            {
+                mainCamera = Camera.main;
+            }
+        }
+
 
         public IEnumerable<(T, GameObject)> FilterHits<T>()
         {
@@ -70,7 +79,17 @@ namespace StarLine2D.Controllers
         
         private void Update()
         {
-            Vector3 mouse = Mouse.current.position.ReadValue();
+            UpdateHits();
+        }
+
+        public void UpdateHits()
+        {
+            if (mainCamera is null || Pointer.current == null)
+            {
+                return;
+            }
+            
+            Vector3 mouse = Pointer.current.position.ReadValue();
             var ray = mainCamera.ScreenPointToRay(mouse);
             
             _hitsCount = Physics2D.RaycastNonAlloc(ray.origin, ray.direction, _hits);
