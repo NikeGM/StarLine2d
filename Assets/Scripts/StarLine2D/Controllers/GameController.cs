@@ -160,7 +160,7 @@ namespace StarLine2D.Controllers
         {
             if (ship.MoveCell is not null)
             {
-                yield return ship.MoveController.GoTo(ship.MoveCell.transform); // Дожидаемся завершения перемещения
+                yield return ship.MoveController.GoTo(ship.MoveCell.transform);
                 ship.PositionCell = ship.MoveCell;
                 ship.MoveCell = null;
             }
@@ -175,9 +175,12 @@ namespace StarLine2D.Controllers
         {
             foreach (var shipWeapon in ship.Weapons)
             {
-                var shootCells = new HashSet<CellController>();
+                if (!ship.PositionCell || !shipWeapon.ShootCell)
+                    continue;
+
                 var distance = field.GetDistance(ship.PositionCell, shipWeapon.ShootCell);
                 if (distance - 1 > shipWeapon.Range) continue;
+                var shootCells = new HashSet<CellController>();
 
                 if (shipWeapon.Type == WeaponType.Point)
                 {

@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using StarLine2D.Components;
 using StarLine2D.Models;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -107,7 +109,7 @@ namespace StarLine2D.Controllers
 
         public bool IsCellInZone(CellController cell, CellController center, int radius)
         {
-            if (cell == null || center == null) return false;
+            if (!cell || !center) return false;
 
             var neighbors = GetNeighbors(center, radius);
             return neighbors.Contains(cell);
@@ -115,6 +117,7 @@ namespace StarLine2D.Controllers
 
         public int GetDistance(CellController start, CellController end)
         {
+            Debug.Log(cubeGridModel);
             return cubeGridModel.GetDistance(
                 cubeGridModel.FindCellModel(start.Q, start.R, start.S),
                 cubeGridModel.FindCellModel(end.Q, end.R, end.S)
