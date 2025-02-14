@@ -2,10 +2,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace StarLine2D.UI.Widgets
+namespace StarLine2D.UI.Widgets.DiscreteProgressBar
 {
     [ExecuteInEditMode]
-    public class ProgressBarCellsWidget : MonoBehaviour
+    public class DiscreteProgressBarWidget : MonoBehaviour
     {
         [Header("Settings")]
         [SerializeField] private Sprite cellSprite;
