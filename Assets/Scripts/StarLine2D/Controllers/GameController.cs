@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,18 +12,12 @@ namespace StarLine2D.Controllers
 
         [SerializeField] private GameObject playerPrefab;
         [SerializeField] private GameObject enemyPrefab;
-        [SerializeField] private bool debugAlwaysHit = false;
-
+        [SerializeField] private bool debugAlwaysHit;
         private List<ShipController> _ships = new();
         private readonly CompositeDisposable _trash = new();
-        private SelectionStates _selectionState = SelectionStates.None;
+        private CellsStateController _cellsStateController;
 
-        private enum SelectionStates
-        {
-            None,
-            Position,
-            Attack
-        }
+        private int _currentWeapon = -1;
 
         private void Awake()
         {
@@ -36,34 +29,42 @@ namespace StarLine2D.Controllers
             field.Initialize();
             _trash.Retain(field.OnClick.Subscribe(OnCellClicked));
             _ships = SetPlayersShips();
+            _cellsStateController = field.GetComponent<CellsStateController>();
         }
 
 
         public void OnPositionClicked()
         {
             var player = GetPlayerShip();
-            ChangeSelectionState(SelectionStates.Position);
-            OnCellClicked(player.PositionCell.gameObject);
+            player.FlushShoots();
+            player.MoveCell = null;
+            _cellsStateController.ClearStaticCells();
+            _cellsStateController.SetZone(player.PositionCell, player.MoveDistance, CellsStateController.MoveZone, "");
         }
 
-        public void OnAttackClicked()
+        public void OnAttackClicked(int index)
         {
             var player = GetPlayerShip();
-            ChangeSelectionState(SelectionStates.Attack);
-            OnCellClicked(player.PositionCell.gameObject);
+            if (!player.MoveCell) return;
+            var weapon = player.Weapons[index];
+
+            _cellsStateController.SetZone(player.MoveCell, weapon.Range, CellsStateController.WeaponZone,
+                weapon.Type.ToString());
+            _currentWeapon = index;
         }
 
         public IEnumerator TurnFinished()
         {
+            _cellsStateController.ClearZone();
+            _cellsStateController.ClearStaticCells();
             var playerShip = GetPlayerShip();
+
+
             var enemyShip = GetEnemyShip();
             var enemyController = enemyShip.GetComponent<EnemyController>();
-
-            FlushCells();
-    
             enemyController?.Move();
             enemyController?.Shot(playerShip);
-    
+
             var isCollision = enemyShip.MoveCell == playerShip.MoveCell;
 
             var playerMoveCoroutine = StartCoroutine(MoveShip(playerShip));
@@ -72,11 +73,6 @@ namespace StarLine2D.Controllers
             yield return playerMoveCoroutine;
             yield return enemyMoveCoroutine;
 
-            if (debugAlwaysHit)
-            {
-                playerShip.ShotCell = enemyShip.PositionCell;
-            }
-
             Shot(playerShip);
             Shot(enemyShip);
 
@@ -84,81 +80,31 @@ namespace StarLine2D.Controllers
             {
                 OnShipCollision(playerShip, enemyShip);
             }
-
-            ChangeSelectionState(SelectionStates.None);
         }
 
         private void OnCellClicked(GameObject go)
         {
+            Debug.Log(go);
             if (go == field.gameObject) return;
 
             var cell = go.GetComponent<CellController>();
+            var zone = _cellsStateController.Zone;
+            if (zone is null) return;
+            if (!field.GetComponent<FieldController>().IsCellInZone(cell, zone.Center, zone.Radius)) return;
 
-            if (cell.DisplayState.Is("default"))
+            if (_cellsStateController.Zone.Type == CellsStateController.MoveZone)
             {
-                HandleDefaultState(cell);
-            }
-            else if (cell.DisplayState.Is("active"))
-            {
-                HandleActiveState(cell);
-            }
-            else if (cell.DisplayState.Is("highlighted"))
-            {
-                HandleHighlightedState(cell);
-            }
-        }
-
-
-        private void HandleDefaultState(CellController cell)
-        {
-            if (!HasShip(cell)) return;
-
-            var ship = GetShip(cell);
-            if (!ship.IsPlayer) return;
-
-            FlushCells();
-            var radius = _selectionState == SelectionStates.Attack ? ship.ShootDistance : ship.MoveDistance;
-            var neighbors = field.GetNeighbors(cell, radius);
-            foreach (var neighbor in neighbors) neighbor.DisplayState.SetState("highlighted");
-
-            cell.DisplayState.SetState("active");
-        }
-
-        private void HandleActiveState(CellController cell)
-        {
-            if (HasShip(cell))
-            {
-                if (_selectionState != SelectionStates.None)
-                {
-                    HandleDefaultState(cell);
-                }
-            }
-            else cell.DisplayState.SetState("highlighted");
-        }
-
-        private void FlushCells()
-        {
-            field.Cells.ForEach(item => item.DisplayState.SetState("default"));
-        }
-
-        private void HandleHighlightedState(CellController cell)
-        {
-            foreach (var item in field.Cells)
-            {
-                if (item.DisplayState.Is("active") && !HasShip(item))
-                {
-                    item.DisplayState.SetState("highlighted");
-                }
+                _cellsStateController.AddStaticCell("Move", cell, CellsStateController.MovePoint);
+                GetPlayerShip().MoveCell = cell;
+                _cellsStateController.ClearZone();
+                return;
             }
 
-            cell.DisplayState.SetState("active");
+            if (_currentWeapon == -1) return;
 
-            var playerShip = GetPlayerShip();
-
-            if (_selectionState == SelectionStates.Position)
-                playerShip.MoveCell = cell;
-            else
-                playerShip.ShotCell = cell;
+            _cellsStateController.AddStaticCell(_currentWeapon.ToString(), cell, CellsStateController.ShootPoint);
+            GetPlayerShip().Weapons[_currentWeapon].ShootCell = cell;
+            _cellsStateController.ClearZone();
         }
 
         private List<ShipController> SetPlayersShips()
@@ -166,36 +112,30 @@ namespace StarLine2D.Controllers
             var randomCells = field.GetRandomCells(2);
             var playerCell = randomCells[0];
             var enemyCell = randomCells[1];
-    
             var playerPosition = playerCell.gameObject.transform.position;
             var enemyPosition = enemyCell.gameObject.transform.position;
-    
             var player = Instantiate(playerPrefab, playerPosition, Quaternion.identity);
             var enemy = Instantiate(enemyPrefab, enemyPosition, Quaternion.identity);
-    
             var shipsList = new List<ShipController>();
-    
             var playerShipController = player.GetComponent<ShipController>();
             var enemyShipController = enemy.GetComponent<ShipController>();
             var enemyController = enemy.GetComponent<EnemyController>();
-    
             shipsList.Add(playerShipController);
             shipsList.Add(enemyShipController);
-    
             playerShipController.PositionCell = playerCell;
             enemyShipController.PositionCell = enemyCell;
-    
             enemyController.Initialize(enemyCell, field);
-    
             var directionToEnemy = (enemyPosition - playerPosition).normalized;
             var directionToPlayer = (playerPosition - enemyPosition).normalized;
-    
-            player.transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(directionToEnemy.y, directionToEnemy.x) * Mathf.Rad2Deg);
-            enemy.transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(directionToPlayer.y, directionToPlayer.x) * Mathf.Rad2Deg);
-    
+
+            player.transform.rotation =
+                Quaternion.Euler(0, 0, Mathf.Atan2(directionToEnemy.y, directionToEnemy.x) * Mathf.Rad2Deg);
+            enemy.transform.rotation =
+                Quaternion.Euler(0, 0, Mathf.Atan2(directionToPlayer.y, directionToPlayer.x) * Mathf.Rad2Deg);
+
             return shipsList;
         }
-        
+
         private bool HasShip(CellController cell)
         {
             return _ships.Any(item => item.PositionCell == cell);
@@ -220,7 +160,7 @@ namespace StarLine2D.Controllers
         {
             if (ship.MoveCell is not null)
             {
-                yield return ship.MoveController.GoTo(ship.MoveCell.transform); // Дожидаемся завершения перемещения
+                yield return ship.MoveController.GoTo(ship.MoveCell.transform);
                 ship.PositionCell = ship.MoveCell;
                 ship.MoveCell = null;
             }
@@ -231,37 +171,58 @@ namespace StarLine2D.Controllers
             _trash.Dispose();
         }
 
-        private void ChangeSelectionState(SelectionStates newState)
-        {
-            _selectionState = newState switch
-            {
-                SelectionStates.Attack when _selectionState == SelectionStates.Attack => SelectionStates.Position,
-                SelectionStates.Position when _selectionState == SelectionStates.Position => SelectionStates.Attack,
-                _ => _selectionState
-            };
-
-            _selectionState = newState;
-        }
-
         private void Shot(ShipController ship)
         {
-            var shootCell = ship.ShotCell;
-            shootCell?.ShotAnimation();
-            if (HasShip(shootCell))
+            foreach (var shipWeapon in ship.Weapons)
             {
-                var damagedShip = GetShip(shootCell);
-                var resultedDamage = damagedShip.OnDamage(ship.Damage);
-                if (damagedShip == ship)
-                {
-                    ship.AddScore(-resultedDamage);
-                }
-                else
-                {
-                    ship.AddScore(resultedDamage);
-                }
-            }
+                if (!ship.PositionCell || !shipWeapon.ShootCell)
+                    continue;
 
-            ship.ShotCell = null;
+                var distance = field.GetDistance(ship.PositionCell, shipWeapon.ShootCell);
+                if (distance - 1 > shipWeapon.Range) continue;
+                var shootCells = new HashSet<CellController>();
+
+                if (shipWeapon.Type == WeaponType.Point)
+                {
+                    shootCells.Add(shipWeapon.ShootCell);
+                }
+
+                if (shipWeapon.Type == WeaponType.Beam)
+                {
+                    var cells = field.GetLine(ship.PositionCell, shipWeapon.ShootCell);
+                    foreach (var cell in cells)
+                    {
+                        shootCells.Add(cell);
+                    }
+                }
+
+                shootCells.ToList().ForEach(cell => cell.ShotAnimation());
+
+                var damagedShips = new HashSet<ShipController>();
+
+                foreach (var shootCell in shootCells)
+                {
+                    if (HasShip(shootCell))
+                    {
+                        var damagedShip = GetShip(shootCell);
+                        if (!damagedShips.Contains(damagedShip))
+                        {
+                            var resultedDamage = damagedShip.OnDamage(shipWeapon.Damage);
+                            if (damagedShip == ship)
+                            {
+                                ship.AddScore(-resultedDamage);
+                            }
+                            else
+                            {
+                                ship.AddScore(resultedDamage);
+                                damagedShips.Add(damagedShip);
+                            }
+                        }
+                    }
+                }
+
+                shipWeapon.ShootCell = null;
+            }
         }
 
         private void OnShipCollision(ShipController ship1, ShipController ship2)

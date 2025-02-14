@@ -11,7 +11,7 @@ namespace StarLine2D.Components
         [SerializeField] private List<DisplayStateItem> states = new();
 
         private SpriteRenderer _spriteRenderer;
-        private string _currentState;
+        [SerializeField] private string _currentState;
 
         private void Awake()
         {
@@ -27,7 +27,7 @@ namespace StarLine2D.Components
             return states.Any(item => item.Name == stateName);
         }
         
-        public virtual void SetState(string stateName)
+        public virtual void SetState(string stateName, float alpha = 1)
         {
             if (!HasState(stateName)) return;
             if (stateName == _currentState) return;
@@ -35,8 +35,21 @@ namespace StarLine2D.Components
             var sprite = states.Find(item => item.Name == stateName).Sprite;
             if (_spriteRenderer is null) _spriteRenderer = GetComponent<SpriteRenderer>();
             _spriteRenderer.sprite = sprite;
-            
             _currentState = stateName;
+            // SetTransparency(alpha);
+        }
+        
+        public void SetTransparency(float alpha)
+        {
+            // Убедитесь, что значение альфа находится в диапазоне [0, 1]
+            alpha = Mathf.Clamp01(alpha);
+    
+            if (_spriteRenderer == null) _spriteRenderer = GetComponent<SpriteRenderer>();
+    
+            // Получаем текущий цвет спрайта и изменяем альфа-канал
+            var color = _spriteRenderer.color;
+            color.a = alpha;
+            _spriteRenderer.color = color;
         }
 
         public virtual string GetCurrentState()

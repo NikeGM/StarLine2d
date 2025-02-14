@@ -2,7 +2,7 @@ using UnityEngine.SceneManagement;
 
 namespace StarLine2D.Utils
 {
-    public class Utils
+    public static class Utils
     {
         public static bool IsSceneLoaded(string name)
         {

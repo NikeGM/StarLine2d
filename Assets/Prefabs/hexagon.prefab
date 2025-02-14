@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 484335486569090373}
   - component: {fileID: 4169719772267140468}
   - component: {fileID: 6107039846375062982}
+  - component: {fileID: 6669542995918457549}
   m_Layer: 0
   m_Name: hexagon
   m_TagString: Untagged
@@ -74,10 +75,10 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
+  m_SortingLayerID: -1951870899
+  m_SortingLayer: 2
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: f4c5d0f4495954ddca73fedbacbea415, type: 3}
+  m_Sprite: {fileID: 21300000, guid: e2ad7f0f92bbe4ff6aab847bacb40ebe, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -157,7 +158,7 @@ PolygonCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 2.1, y: 2.1}
+    oldSize: {x: 2.02, y: 2.11}
     newSize: {x: 2.1, y: 2.1}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
@@ -184,16 +185,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b7570ed4ac1141d3b60bf94ca4dd95f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &6669542995918457549
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4598276928076985586}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb97196337799461ca91f6128e529852, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
   states:
   - name: default
-    sprite: {fileID: 21300000, guid: f4c5d0f4495954ddca73fedbacbea415, type: 3}
-  - name: default:hover
-    sprite: {fileID: 21300000, guid: 2a92c13431f7e4bdb9d08d731f7fba9a, type: 3}
-  - name: active
-    sprite: {fileID: 21300000, guid: 573c92af5e4d94c21a880f93d4ec8bd4, type: 3}
-  - name: active:hover
-    sprite: {fileID: 21300000, guid: e7b46f211d1034dc88f9c6733dbb5f0d, type: 3}
-  - name: highlighted
-    sprite: {fileID: 21300000, guid: d29e0b5bc639b4efdb0664744cc9851d, type: 3}
-  - name: highlighted:hover
-    sprite: {fileID: 21300000, guid: 1ed6e60c93bfc4e82b6b423384447247, type: 3}
+    sprite: {fileID: 21300000, guid: 22c420521b9ad476db28eb2284994815, type: 3}
+  - name: move-zone
+    sprite: {fileID: 21300000, guid: 27ce3630e99c64845ae7a2b96d05dae9, type: 3}
+  - name: weapon-zone
+    sprite: {fileID: 21300000, guid: 27ce3630e99c64845ae7a2b96d05dae9, type: 3}
+  - name: move-hover
+    sprite: {fileID: 21300000, guid: b91043baf5d104a1cae885e4a3769560, type: 3}
+  - name: weapon-hover
+    sprite: {fileID: 21300000, guid: e2ad7f0f92bbe4ff6aab847bacb40ebe, type: 3}
+  - name: move-point
+    sprite: {fileID: 21300000, guid: e4773555877814a91b4b1cff4e655a66, type: 3}
+  - name: shoot-point
+    sprite: {fileID: 21300000, guid: e4ae140f3f7d045ea9824e94f5f64b29, type: 3}
+  - name: hover-zone
+    sprite: {fileID: 21300000, guid: 85540fa106ff14224b7e3096b24f0d8b, type: 3}
+  _currentState: 
