@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using StarLine2D.UI.Widgets.Palette;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,6 +13,7 @@ namespace StarLine2D.UI.Widgets.DiscreteProgressBar
         [SerializeField] private Sprite filledCellSprite;
         [SerializeField] private int cellsCount = 15;
         [SerializeField] private float cellsOffset = 10;
+        [SerializeField] [Palette] private Color color;
 
         [Header("Value")] 
         [Range(0f, 1f)]
@@ -43,8 +45,8 @@ namespace StarLine2D.UI.Widgets.DiscreteProgressBar
 
         private void OnValidate()
         {
-            if (_cells.Count != cellsCount) _needToGenerate = true;
-            if (_lastFilledInt != FilledInt) _needToFill = true;
+            _needToGenerate = true;
+            _needToFill = true;
         }
 
         public void SetProgress(float value)
@@ -54,18 +56,32 @@ namespace StarLine2D.UI.Widgets.DiscreteProgressBar
             _needToFill = true;
         }
 
-        [ContextMenu("Fill")]
         private void Fill()
         {
             for (var i = 0; i < cellsCount; i++)
             {
-                _cells[i].sprite = i < FilledInt ? filledCellSprite : cellSprite;
+                if (i < FilledInt)
+                {
+                    _cells[i].sprite = filledCellSprite;
+                    _cells[i].color = color;
+                }
+                else
+                {
+                    _cells[i].sprite = cellSprite;
+                    _cells[i].color = Color.white;
+                }
             }
 
             _lastFilledInt = FilledInt;
         }
 
         [ContextMenu("Generate")]
+        private void Regenerate()
+        {
+            _needToGenerate = true;
+            _needToFill = true;
+        }
+        
         private List<Image> GenerateCells()
         {
             for (var i = transform.childCount - 1; i >= 0; i--) DestroyImmediate(transform.GetChild(i).gameObject);
