@@ -12,7 +12,7 @@ namespace StarLine2D.Controllers
     {
         private MouseInputController mouseInputController;
         private readonly Dictionary<IHoverable, GameObject> _wasHovered = new();
-        private bool _initialized = false;
+        private bool _initialized;
 
         private void Awake()
         {
@@ -23,7 +23,7 @@ namespace StarLine2D.Controllers
         public void OnClick(InputAction.CallbackContext context)
         {
             if (!_initialized) return;
-            
+
             mouseInputController.UpdateHits();
 
             foreach (var pair in mouseInputController.FilterHits<IClickable>())
@@ -47,18 +47,18 @@ namespace StarLine2D.Controllers
                 }
 
                 _wasHovered[go] = target;
-                go?.OnHoverStarted(target);
+                go.OnHoverStarted(target);
             }
 
             var toNull = new List<IHoverable>();
             foreach (var (go, target) in _wasHovered)
             {
                 if (go == null) continue;
-                
+
                 var found = isHovered.Any(item => item.Item1 == go);
                 if (found) continue;
-                
-                go?.OnHoverFinished(target);
+
+                go.OnHoverFinished(target);
                 toNull.Add(go);
             }
 

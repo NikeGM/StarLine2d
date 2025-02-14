@@ -90,7 +90,9 @@ namespace StarLine2D.Controllers
                 {
                     Vector3 direction = touchStart - mainCamera.ScreenToWorldPoint(touch.screenPosition);
                     mainCamera.transform.position += direction * (moveSpeed * Time.deltaTime);
-                    touchStart = mainCamera.ScreenToWorldPoint(touch.screenPosition); // Обновление touchStart для плавного перемещения
+                    touchStart =
+                        mainCamera.ScreenToWorldPoint(touch
+                            .screenPosition); // Обновление touchStart для плавного перемещения
                 }
             }
 

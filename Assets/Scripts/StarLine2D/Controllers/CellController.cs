@@ -65,7 +65,6 @@ namespace StarLine2D.Controllers
         {
             PlayAnimation(explosionAnimation);
         }
-
         private void PlayAnimation(ParticleSystem particleAnimation)
         {
             if (explosionAnimation is null) return;
