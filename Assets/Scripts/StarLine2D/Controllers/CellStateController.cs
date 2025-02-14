@@ -1,7 +1,4 @@
 using System.Collections.Generic;
-using JetBrains.Annotations;
-using StarLine2D.Components;
-using StarLine2D.Models;
 using UnityEngine;
 
 namespace StarLine2D.Controllers
@@ -62,7 +59,7 @@ namespace StarLine2D.Controllers
             
             if (_currentZone != null && _hoveredCell != null && hoverInZone)
             {
-                _hoveredCell.DisplayState.SetState(_currentZone.Type == MoveZone ? "move-hover" : "weapon-hover", 0.4f);
+                _hoveredCell.DisplayState.SetState(_currentZone.Type == MoveZone ? "move-hover" : "weapon-hover");
             }
             
             foreach (var staticCell in _staticCells.Values)
