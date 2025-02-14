@@ -42,7 +42,7 @@ namespace StarLine2D.Components
             return states.Any(item => item.Name == stateName);
         }
         
-        public virtual void SetState(string stateName, float alpha = 1)
+        public virtual void SetState(string stateName)
         {
             if (!HasState(stateName)) return;
             if (stateName == _currentState) return;
@@ -51,22 +51,8 @@ namespace StarLine2D.Components
             SetSprite(sprite);
             
             _currentState = stateName;
-            // SetTransparency(alpha);
         }
         
-        public void SetTransparency(float alpha)
-        {
-            // Убедитесь, что значение альфа находится в диапазоне [0, 1]
-            alpha = Mathf.Clamp01(alpha);
-    
-            if (_spriteRenderer == null) _spriteRenderer = GetComponent<SpriteRenderer>();
-    
-            // Получаем текущий цвет спрайта и изменяем альфа-канал
-            var color = _spriteRenderer.color;
-            color.a = alpha;
-            _spriteRenderer.color = color;
-        }
-
         public virtual string GetCurrentState()
         {
             return _currentState;
