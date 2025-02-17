@@ -45,5 +45,24 @@ namespace StarLine2D.Utils.Observables
             call?.Invoke(_storedValue, _storedValue);
             return Subscribe(call);
         }
+
+        public ActionDisposable Watch(ObservableProperty<TPropertyType> other)
+        {
+            Value = other.Value;
+
+            var disposable1 = other.Subscribe((a, b) =>
+            {
+                if (a.Equals(b)) return;
+                Value = other.Value;
+            });
+
+            var disposable2 = Subscribe((a, b) =>
+            {
+                if (a.Equals(b)) return;
+                other.Value = Value;
+            });
+
+            return ActionDisposable.Merge(disposable1, disposable2);
+        }
     }
 }

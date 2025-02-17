@@ -5,17 +5,32 @@ using UnityEngine;
 
 namespace StarLine2D.Components
 {
-    [RequireComponent(typeof(SpriteRenderer))]
     public class DisplayStateComponent : MonoBehaviour
     {
         [SerializeField] private List<DisplayStateItem> states = new();
+        [SerializeField] private string onDisableState;
 
         private SpriteRenderer _spriteRenderer;
-        [SerializeField] private string _currentState;
+
+        private bool _spriteRendererInitialized = false;
+        
+        private string _currentState;
+
+        protected virtual void SetSprite(Sprite sprite)
+        {
+            if (!_spriteRendererInitialized)
+            {
+                _spriteRenderer = GetComponent<SpriteRenderer>();
+                _spriteRendererInitialized = _spriteRenderer != null;
+            }
+
+            if (!_spriteRendererInitialized) return;
+            
+            _spriteRenderer.sprite = sprite;
+        }
 
         private void Awake()
         {
-            _spriteRenderer = GetComponent<SpriteRenderer>();
             if (states.Count == 0) return;
 
             _currentState = states[0].Name;
@@ -33,25 +48,11 @@ namespace StarLine2D.Components
             if (stateName == _currentState) return;
  
             var sprite = states.Find(item => item.Name == stateName).Sprite;
-            if (_spriteRenderer is null) _spriteRenderer = GetComponent<SpriteRenderer>();
-            _spriteRenderer.sprite = sprite;
+            SetSprite(sprite);
+            
             _currentState = stateName;
-            // SetTransparency(alpha);
         }
         
-        public void SetTransparency(float alpha)
-        {
-            // Убедитесь, что значение альфа находится в диапазоне [0, 1]
-            alpha = Mathf.Clamp01(alpha);
-    
-            if (_spriteRenderer == null) _spriteRenderer = GetComponent<SpriteRenderer>();
-    
-            // Получаем текущий цвет спрайта и изменяем альфа-канал
-            var color = _spriteRenderer.color;
-            color.a = alpha;
-            _spriteRenderer.color = color;
-        }
-
         public virtual string GetCurrentState()
         {
             return _currentState;
@@ -60,6 +61,11 @@ namespace StarLine2D.Components
         public virtual bool Is(string stateName)
         {
             return GetCurrentState() == stateName;
+        }
+
+        private void OnDisable()
+        {
+            if (HasState(onDisableState)) SetState(onDisableState);
         }
 
         [Serializable]

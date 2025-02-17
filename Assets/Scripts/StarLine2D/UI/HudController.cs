@@ -2,6 +2,7 @@ using System.Collections;
 using System.Linq;
 using StarLine2D.Controllers;
 using StarLine2D.UI.Widgets;
+using StarLine2D.UI.Widgets.ProgressBar;
 using UnityEngine;
 
 namespace StarLine2D.UI
@@ -30,7 +31,7 @@ namespace StarLine2D.UI
             var player = ships.FirstOrDefault(item => item.IsPlayer);
             if (player && playerHealthBar)
             {
-                playerHealthBar.Watch(player.Health, 0, player.MaxHealth);
+                playerHealthBar.Watch(player.Health);
             }
 
             if (player && playerScore)
@@ -41,7 +42,7 @@ namespace StarLine2D.UI
             var enemy = ships.First(item => !item.IsPlayer);
             if (enemy && enemyHealthBar)
             {
-                enemyHealthBar.Watch(enemy.Health, 0, enemy.MaxHealth);
+                enemyHealthBar.Watch(enemy.Health);
             }
 
             if (enemy && enemyScore)

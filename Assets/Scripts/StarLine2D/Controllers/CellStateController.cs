@@ -1,7 +1,4 @@
 using System.Collections.Generic;
-using JetBrains.Annotations;
-using StarLine2D.Components;
-using StarLine2D.Models;
 using UnityEngine;
 
 namespace StarLine2D.Controllers
