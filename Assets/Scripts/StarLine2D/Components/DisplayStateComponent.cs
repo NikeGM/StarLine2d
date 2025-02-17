@@ -27,7 +27,7 @@ namespace StarLine2D.Components
             return states.Any(item => item.Name == stateName);
         }
         
-        public virtual void SetState(string stateName, float alpha = 1)
+        public virtual void SetState(string stateName)
         {
             if (!HasState(stateName)) return;
             if (stateName == _currentState) return;
