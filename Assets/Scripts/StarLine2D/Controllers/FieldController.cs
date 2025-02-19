@@ -54,12 +54,9 @@ namespace StarLine2D.Controllers
         public List<CellController> GetRandomCells(int count)
         {
             if (count > _cells.Count)
-            {
                 return new List<CellController>();
-            }
 
-            var randomCells = _cells.OrderBy(_ => Random.value).Take(count).ToList();
-            return randomCells;
+            return _cells.OrderBy(_ => Random.value).Take(count).ToList();
         }
 
         public CellController FindCellByModel(CubeCellModel cellModel)
@@ -87,7 +84,12 @@ namespace StarLine2D.Controllers
             _cellHeight = (cellCollider.bounds.size.y + offset) / 2;
             _cellWidth = _cellHeight * Mathf.Sqrt(3) / 2;
             Debug.Log(_cellWidth + " " + _cellHeight);
+
+#if UNITY_EDITOR
             DestroyImmediate(tmpCell);
+#else
+            Destroy(tmpCell);
+#endif
         }
 
         public List<CellController> GetNeighbors(CellController cell, int radius)
@@ -99,17 +101,16 @@ namespace StarLine2D.Controllers
             }
 
             var neighborModels = cubeGridModel.GetCellsInRadius(cellModel, radius);
-            var neighborControllers = neighborModels
+            return neighborModels
                 .Select(FindCellByModel)
                 .Where(controller => controller is not null)
                 .ToList();
-
-            return neighborControllers;
         }
 
         public bool IsCellInZone(CellController cell, CellController center, int radius)
         {
-            if (!cell || !center) return false;
+            if (!cell || !center)
+                return false;
 
             var neighbors = GetNeighbors(center, radius);
             return neighbors.Contains(cell);
@@ -117,7 +118,6 @@ namespace StarLine2D.Controllers
 
         public int GetDistance(CellController start, CellController end)
         {
-            Debug.Log(cubeGridModel);
             return cubeGridModel.GetDistance(
                 cubeGridModel.FindCellModel(start.Q, start.R, start.S),
                 cubeGridModel.FindCellModel(end.Q, end.R, end.S)
@@ -130,7 +130,7 @@ namespace StarLine2D.Controllers
                 cubeGridModel.FindCellModel(start.Q, start.R, start.S),
                 cubeGridModel.FindCellModel(end.Q, end.R, end.S)
             );
-            return pathModel.Select(FindCellByModel).ToList();
+            return pathModel.Select(FindCellByModel).Where(c => c != null).ToList();
         }
 
         public List<CellController> GetWeaponZone(Weapon weapon, CellController shootCell, CellController positionCell)
@@ -157,14 +157,12 @@ namespace StarLine2D.Controllers
             foreach (var cell in model.Cells.Values)
             {
                 var position = GetCellPosition(cell);
-                GameObject hex;
 
 #if UNITY_EDITOR
-                hex = PrefabUtility.InstantiatePrefab(cellPrefab.gameObject, transform) as GameObject;
+                var hex = PrefabUtility.InstantiatePrefab(cellPrefab.gameObject, transform) as GameObject;
 #else
-                hex = Instantiate(cellPrefab.gameObject, transform);
+                var hex = Instantiate(cellPrefab.gameObject, transform);
 #endif
-
                 if (!hex) continue;
                 hex.transform.position = position;
                 hex.name = $"CubeCell_{cell.Q}_{cell.R}_{cell.S}";
@@ -184,7 +182,11 @@ namespace StarLine2D.Controllers
         {
             for (var i = transform.childCount - 1; i >= 0; i--)
             {
+#if UNITY_EDITOR
                 DestroyImmediate(transform.GetChild(i).gameObject);
+#else
+                Destroy(transform.GetChild(i).gameObject);
+#endif
             }
         }
     }
