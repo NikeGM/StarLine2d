@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using StarLine2D.UI.Widgets.Palette;
 using UnityEngine;
 
@@ -13,6 +14,23 @@ namespace StarLine2D.Components
         [SerializeField] private List<Profile> profiles = new();
 
         private bool _updated = true;
+
+        public string GetCurrentProfile()
+        {
+            return current;
+        }
+
+        public bool HasProfile(string profileId)
+        {
+            return profiles.Any(item => item.Id == profileId);
+        }
+        
+        public bool SetProfile(string profileId)
+        {
+            if (!HasProfile(profileId)) return false;
+            current = profileId;
+            return true;
+        }
         
         public void UpdateSprites()
         {
