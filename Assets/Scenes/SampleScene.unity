@@ -4776,6 +4776,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerS2
       objectReference: {fileID: 0}
+    - target: {fileID: 8457788082549557393, guid: 2bd5eeeaa680742c18a17eea7ffed409, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -6334,9 +6338,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   field: {fileID: 1677296064}
-  playerPrefab: {fileID: 8457788082549557393, guid: 75db12a5259484192b4c00383a97d88d, type: 3}
-  enemyPrefab: {fileID: 7231466699880770099, guid: b17d8b0242f7d4b249a6543bce156f8e, type: 3}
+  playerPrefabs: []
+  enemyPrefabs: []
+  selectedPlayerIndex: 0
+  selectedEnemyIndex: 0
   debugAlwaysHit: 1
+  moveDuration: 2
 --- !u!1001 &630331673
 PrefabInstance:
   m_ObjectHideFlags: 0
