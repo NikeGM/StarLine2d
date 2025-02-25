@@ -21,17 +21,19 @@ namespace StarLine2D.Controllers
         [SerializeField] private CubeCellModel direction;
 
         [Header("Параметры вращения")]
-        // Если rotateClockwise = true, делаем пол-оборота по часовой стрелке при движении
-        // Если false — против часовой стрелки
         [SerializeField] private bool rotateClockwise = true;
 
-        // Можно (опционально) добавить аниматор для анимации уничтожения
+        [Header("Ссылки на объекты внутри префаба")]
+        [SerializeField] private Transform _asteroidSpriteTransform; 
+        [SerializeField] private Transform _arrowRoot;
+
+        [Header("Эффекты уничтожения (Particles)")]
+        [SerializeField] private ParticleSystem destroyParticles;
+
         [Header("Анимация уничтожения (опционально)")]
         [SerializeField] private Animator animator;
-        private bool _isDestroying;
 
-        // --- Изменено: Сохраним ссылки на FieldController и GameController, чтобы при уничтожении большого астероида
-        // можно было вызвать логику спавна маленьких в GameController.
+        private bool _isDestroying;
         private FieldController _field;
         private GameController _gameController;
 
@@ -40,21 +42,28 @@ namespace StarLine2D.Controllers
         public float Mass => mass;
         public CellController PositionCell => positionCell;
         public CubeCellModel Direction => direction;
-
-        /// <summary>
-        /// Свойство, чтобы узнать, вращаем ли мы по часовой стрелке или нет.
-        /// </summary>
         public bool RotateClockwise => rotateClockwise;
 
         private void Awake()
         {
-            // Находим контроллеры на сцене (или можете настроить передачу ссылок иначе).
             _field = FindObjectOfType<FieldController>();
             _gameController = FindObjectOfType<GameController>();
+
+            // Подстраховка на случай, если ссылки не выставлены в инспекторе
+            if (!_asteroidSpriteTransform)
+            {
+                var spriteChild = transform.Find("Sprite");
+                if (spriteChild) _asteroidSpriteTransform = spriteChild;
+            }
+            if (!_arrowRoot)
+            {
+                var arrowChild = transform.Find("Arrow");
+                if (arrowChild) _arrowRoot = arrowChild;
+            }
         }
 
         /// <summary>
-        /// Инициализация астероида стартовыми параметрами.
+        /// Инициализация астероида на стартовой клетке, с задаными параметрами.
         /// </summary>
         public void Initialize(AsteroidSize size, int hp, float mass, CellController startCell, CubeCellModel direction)
         {
@@ -68,18 +77,50 @@ namespace StarLine2D.Controllers
             {
                 transform.position = positionCell.transform.position;
             }
+
+            SetupArrowOnSpawn();
         }
 
         /// <summary>
-        /// Плавное перемещение БЕЗ дополнительного поворота (как раньше).
+        /// Настроить стрелку при появлении (пример).
+        /// </summary>
+        private void SetupArrowOnSpawn()
+        {
+            if (!_arrowRoot || positionCell == null || _field == null) return;
+
+            int nextQ = positionCell.Q + direction.Q;
+            int nextR = positionCell.R + direction.R;
+            int nextS = positionCell.S + direction.S;
+            var nextCellModel = new CubeCellModel(nextQ, nextR, nextS);
+            var nextCell = _field.FindCellByModel(nextCellModel);
+
+            if (nextCell == null || nextCell == positionCell)
+            {
+                // Нет движения - прячем стрелку
+                _arrowRoot.gameObject.SetActive(false);
+                return;
+            }
+
+            // Иначе показываем стрелку
+            _arrowRoot.gameObject.SetActive(true);
+
+            // Рассчитываем угол
+            var oldPos = transform.position;
+            var newPos = nextCell.transform.position;
+            var dir = (newPos - oldPos).normalized;
+            float baseAngle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+            float arrowAngle = baseAngle - 90f;
+            _arrowRoot.rotation = Quaternion.Euler(0, 0, arrowAngle);
+        }
+
+        /// <summary>
+        /// Плавное перемещение без пол-оборота.
         /// </summary>
         public IEnumerator MoveSmoothly(FieldController field, float moveDuration)
         {
-            // Если уничтожается или нет поля/позиции
             if (_isDestroying || positionCell == null || field == null)
                 yield break;
 
-            // Проверяем следующую клетку
             int nextQ = positionCell.Q + direction.Q;
             int nextR = positionCell.R + direction.R;
             int nextS = positionCell.S + direction.S;
@@ -89,7 +130,6 @@ namespace StarLine2D.Controllers
 
             if (nextCell == null)
             {
-                // Вылетел за границы — уничтожаем
                 Destroy(gameObject);
                 yield break;
             }
@@ -111,15 +151,13 @@ namespace StarLine2D.Controllers
         }
 
         /// <summary>
-        /// НОВЫЙ метод: плавное перемещение с «пол-оборотом» (180°).
-        /// Астероид поворачивается на 180° в одну сторону (rotateClockwise).
+        /// Плавное перемещение с пол-оборотом + поворот стрелки.
         /// </summary>
         public IEnumerator MoveSmoothlyWithHalfTurn(FieldController field, float moveDuration)
         {
             if (_isDestroying || positionCell == null || field == null)
                 yield break;
 
-            // Считаем следующую клетку
             int nextQ = positionCell.Q + direction.Q;
             int nextR = positionCell.R + direction.R;
             int nextS = positionCell.S + direction.S;
@@ -129,23 +167,39 @@ namespace StarLine2D.Controllers
 
             if (nextCell == null)
             {
-                // Вылетает за границы — уничтожаем
+                // Вышли за границы, уничтожаем
                 Destroy(gameObject);
                 yield break;
             }
 
-            // Сохраняем старые координаты
+            // Если не движемся
+            if (nextCell == positionCell)
+            {
+                if (_arrowRoot)
+                    _arrowRoot.gameObject.SetActive(false);
+                yield break;
+            }
+            else
+            {
+                // Включаем стрелку
+                if (_arrowRoot)
+                    _arrowRoot.gameObject.SetActive(true);
+            }
+
+            // Пол-оборот
+            float halfTurnAngle = rotateClockwise ? -180f : 180f;
+            var oldRot = _asteroidSpriteTransform ? _asteroidSpriteTransform.rotation : Quaternion.identity;
+            var newRot = oldRot * Quaternion.Euler(0, 0, halfTurnAngle);
+
+            // Поворот стрелки
             var oldPos = transform.position;
             var newPos = nextCell.transform.position;
+            var directionVector = (newPos - oldPos).normalized;
+            float baseAngle = Mathf.Atan2(directionVector.y, directionVector.x) * Mathf.Rad2Deg;
+            float arrowAngle = baseAngle - 90f;
 
-            // Определяем угол пол-оборота
-            // Положительный угол — вращение против часовой (Unity считает z-axis вверх),
-            // Отрицательный — по часовой. 
-            float halfTurnAngle = rotateClockwise ? -180f : 180f;
-
-            // Считаем начальный и конечный кватернион
-            var oldRot = transform.rotation;
-            var newRot = oldRot * Quaternion.Euler(0, 0, halfTurnAngle);
+            var arrowOldRot = _arrowRoot ? _arrowRoot.rotation : Quaternion.identity;
+            var arrowNewRot = Quaternion.Euler(0, 0, arrowAngle);
 
             float elapsed = 0f;
             while (elapsed < moveDuration)
@@ -153,23 +207,35 @@ namespace StarLine2D.Controllers
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / moveDuration);
 
-                // Линейно перемещаемся
                 transform.position = Vector3.Lerp(oldPos, newPos, t);
 
-                // Плавно поворачиваемся на 180° (Slerp)
-                transform.rotation = Quaternion.Slerp(oldRot, newRot, t);
+                // Вращаем спрайт астероида
+                if (_asteroidSpriteTransform)
+                {
+                    _asteroidSpriteTransform.rotation = Quaternion.Slerp(oldRot, newRot, t);
+                }
+
+                // Поворот стрелки
+                if (_arrowRoot)
+                {
+                    _arrowRoot.rotation = Quaternion.Slerp(arrowOldRot, arrowNewRot, t);
+                }
 
                 yield return null;
             }
 
-            // Фиксируем конечное положение и ориентацию
             transform.position = newPos;
-            transform.rotation = newRot;
             positionCell = nextCell;
+
+            if (_asteroidSpriteTransform)
+                _asteroidSpriteTransform.rotation = newRot;
+
+            if (_arrowRoot)
+                _arrowRoot.rotation = arrowNewRot;
         }
 
         /// <summary>
-        /// Получаем урон от оружия. Если HP <= 0, запускаем анимацию уничтожения.
+        /// Вызывается при попадании оружия. Если HP <= 0 — уничтожается.
         /// </summary>
         public int OnDamage(int damage)
         {
@@ -186,32 +252,44 @@ namespace StarLine2D.Controllers
         }
 
         /// <summary>
-        /// Короутина анимации уничтожения от оружия (пример, можно менять под свои нужды).
-        /// При уничтожении большого астероида (AsteroidSize.Big) — спавн маленьких.
+        /// Корутина уничтожения. Сначала скрываем спрайт,
+        /// потом играем анимацию / партиклы, затем уничтожаем объект.
         /// </summary>
         private IEnumerator DestroyByWeapon()
         {
             _isDestroying = true;
 
+            // 1) Спрячем «камень» и стрелку
+            if (_asteroidSpriteTransform)
+                _asteroidSpriteTransform.gameObject.SetActive(false);
+
+            if (_arrowRoot)
+                _arrowRoot.gameObject.SetActive(false);
+
+            // 2) Запускаем (опционально) анимацию
             if (animator)
             {
                 animator.SetTrigger("Destroy");
                 yield return new WaitForSeconds(1f); 
             }
-            else
+
+            // 3) Запускаем партиклы (если есть)
+            if (destroyParticles != null)
             {
-                // Без аниматора — простая задержка
-                Debug.Log("Астероид уничтожен оружием, проигрываем визуальные эффекты...");
-                yield return new WaitForSeconds(1f);
+                var particles = Instantiate(destroyParticles, transform.position, Quaternion.identity);
+                particles.Play();
+                var main = particles.main;
+                // Ждём, пока они отыграют
+                yield return new WaitForSeconds(main.duration);
             }
 
-            // --- Изменено: вызываем логику спавна маленьких астероидов в GameController,
-            //               если этот астероид был большим.
+            // 4) Если большой астероид, вызываем спавн мелких
             if (size == AsteroidSize.Big && _gameController != null)
             {
                 _gameController.SpawnSmallAsteroids(this);
             }
 
+            // 5) Уничтожаем
             Destroy(gameObject);
         }
     }

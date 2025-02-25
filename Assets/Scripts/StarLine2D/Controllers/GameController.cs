@@ -34,13 +34,12 @@ namespace StarLine2D.Controllers
         // -------------------------------------------------------
 
         // --- Изменено: используем bigAsteroidPrefab для больших
-        [Header("Астероиды")]
-        [SerializeField] private GameObject bigAsteroidPrefab;  // Префаб большого
+        [Header("Астероиды")] [SerializeField] private GameObject bigAsteroidPrefab; // Префаб большого
         [SerializeField] private GameObject smallAsteroidPrefab; // Префаб маленького
 
         [SerializeField] private int numberOfAsteroids = 5; // Количество генерируемых больших астероидов
-        [SerializeField] private int minAsteroidHp = 5;     // Минимальное HP
-        [SerializeField] private int maxAsteroidHp = 20;    // Максимальное HP
+        [SerializeField] private int minAsteroidHp = 5; // Минимальное HP
+        [SerializeField] private int maxAsteroidHp = 20; // Максимальное HP
         [SerializeField] private float minAsteroidMass = 0.5f; // Минимальная масса
         [SerializeField] private float maxAsteroidMass = 3.0f; // Максимальная масса
 
@@ -294,6 +293,7 @@ namespace StarLine2D.Controllers
                     {
                         cellsOnLine.RemoveAt(0);
                     }
+
                     foreach (var c in cellsOnLine)
                         shootCells.Add(c);
                 }
@@ -502,25 +502,50 @@ namespace StarLine2D.Controllers
                 return;
             }
 
-            for (int i = 0; i < numberOfAsteroids; i++)
-            {
-                var randomCells = field.GetRandomCells(1);
-                if (randomCells.Count == 0) break;
-                var startCell = randomCells[0];
+            // Соберём список всех свободных клеток —
+            // тех, где не стоит ни корабль, ни другой астероид.
+            // Если хотите также исключать будущие клетки врагов и т.д.,
+            // отфильтруйте соответствующим образом.
 
+            var freeCells = field.Cells.Where(cell =>
+                    // Убедимся, что нет уже астероида в этой клетке
+                    !_asteroids.Any(a => a.PositionCell == cell)
+                    // И (опционально) нет корабля:
+                    && !_ships.Any(s => s.PositionCell == cell)
+                )
+                // Перемешаем, чтобы брать случайные клетки
+                .OrderBy(_ => Random.value)
+                .ToList();
+
+            // Сколько астероидов нам нужно по плану
+            int spawnCount = numberOfAsteroids;
+
+            // Если свободных клеток меньше, чем хотим заспавнить,
+            // спавним максимально возможное
+            if (freeCells.Count < spawnCount)
+                spawnCount = freeCells.Count;
+
+            // Берём первые spawnCount клеток (после перемешивания это случайные)
+            for (int i = 0; i < spawnCount; i++)
+            {
+                var startCell = freeCells[i];
+
+                // Спавним префаб
                 var asteroidGo = Instantiate(bigAsteroidPrefab, startCell.transform.position, Quaternion.identity);
                 var asteroidCtrl = asteroidGo.GetComponent<AsteroidController>();
-                if (asteroidCtrl == null)
+                if (!asteroidCtrl)
                 {
                     Debug.LogWarning("Префаб большого астероида не содержит AsteroidController!");
                     continue;
                 }
 
-                var randomSize = AsteroidSize.Big; // По задаче мы хотим сгенерировать большие
+                // Генерим рандомные статы, как и раньше
+                var randomSize = AsteroidSize.Big;
                 var randomHp = Random.Range(minAsteroidHp, maxAsteroidHp + 1);
                 var randomMass = Random.Range(minAsteroidMass, maxAsteroidMass);
                 var randomDirection = GetRandomDirection();
 
+                // Инициализируем
                 asteroidCtrl.Initialize(
                     randomSize,
                     randomHp,
@@ -529,9 +554,11 @@ namespace StarLine2D.Controllers
                     randomDirection
                 );
 
+                // Добавляем в список
                 _asteroids.Add(asteroidCtrl);
             }
         }
+
 
         /// <summary>
         /// Удаляем из списка все астероиды, которые были уничтожены (null).
@@ -580,8 +607,8 @@ namespace StarLine2D.Controllers
             var neighbors = field.GetNeighbors(bigAsteroid.PositionCell, 1);
 
             // Фильтруем занятые (где уже есть астероид/корабль)
-            neighbors = neighbors.Where(cell => 
-                !_asteroids.Any(a => a && a.PositionCell == cell) && 
+            neighbors = neighbors.Where(cell =>
+                !_asteroids.Any(a => a && a.PositionCell == cell) &&
                 _ships.All(s => s.PositionCell != cell)).ToList();
 
             // Рандомим, сколько именно спавнить (от 1 до 6)
