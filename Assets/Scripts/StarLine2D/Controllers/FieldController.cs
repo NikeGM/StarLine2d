@@ -80,7 +80,7 @@ namespace StarLine2D.Controllers
         {
             var tmpCell = Instantiate(cellPrefab, transform);
             var cellCollider = tmpCell.GetComponent<Collider2D>();
-            var offset = 0.1f;
+            var offset = 0.15f;
             _cellHeight = (cellCollider.bounds.size.y + offset) / 2;
             _cellWidth = _cellHeight * Mathf.Sqrt(3) / 2;
             Debug.Log(_cellWidth + " " + _cellHeight);

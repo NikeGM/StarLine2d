@@ -21,9 +21,27 @@ MonoBehaviour:
     color: {r: 0.45490196, g: 0.44705883, b: 0.44705883, a: 1}
   - colorName: blue
     color: {r: 0.32156864, g: 0.70980394, b: 1, a: 1}
+  - colorName: blue-20
+    color: {r: 0.32156864, g: 0.70980394, b: 1, a: 0.12941177}
   - colorName: white
     color: {r: 1, g: 1, b: 1, a: 1}
   - colorName: blue-transparent
     color: {r: 0.32156864, g: 0.70980394, b: 1, a: 0.2}
   - colorName: green
+    color: {r: 0.14509805, g: 0.8117647, b: 0.4117647, a: 1}
+  - colorName: green-30
     color: {r: 0.14509805, g: 0.8117647, b: 0.4117647, a: 0.2}
+  - colorName: blue-hex
+    color: {r: 0.5411765, g: 0.7529412, b: 1, a: 1}
+  - colorName: blue-hex-8
+    color: {r: 0.5411765, g: 0.7529412, b: 1, a: 0.12941177}
+  - colorName: blue-hex-40
+    color: {r: 0.5411765, g: 0.7529412, b: 1, a: 0.25882354}
+  - colorName: red-hex
+    color: {r: 1, g: 0.3647059, b: 0.32156864, a: 1}
+  - colorName: red-hex-8
+    color: {r: 1, g: 0.3647059, b: 0.32156864, a: 0.05490196}
+  - colorName: red-hex-20
+    color: {r: 1, g: 0.3647059, b: 0.32156864, a: 0.12941177}
+  - colorName: red-hex-40
+    color: {r: 1, g: 0.3647059, b: 0.32156864, a: 0.25882354}

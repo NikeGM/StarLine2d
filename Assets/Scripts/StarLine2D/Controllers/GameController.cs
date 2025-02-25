@@ -434,7 +434,7 @@ namespace StarLine2D.Controllers
 
                 for (int i = 0; i < shapeCells.Count; i++)
                 {
-                    _cellsStateController.AddStaticCell($"Move_{i}", shapeCells[i], CellsStateController.MovePoint);
+                    _cellsStateController.AddStaticCell($"Move_{i}", shapeCells[i], CellsStateController.MoveActiveProfile);
                 }
 
                 player.MoveCell = cell;
@@ -445,7 +445,7 @@ namespace StarLine2D.Controllers
             // Если зона атаки
             if (_currentWeapon != -1 && _cellsStateController.Zone.Type == CellsStateController.WeaponZone)
             {
-                _cellsStateController.AddStaticCell(_currentWeapon.ToString(), cell, CellsStateController.ShootPoint);
+                _cellsStateController.AddStaticCell(_currentWeapon.ToString(), cell, CellsStateController.WeaponActiveProfile);
                 GetPlayerShip().Weapons[_currentWeapon].ShootCell = cell;
                 _cellsStateController.ClearZone();
             }
