@@ -47,3 +47,6 @@ TagManager:
   - name: Field
     uniqueID: 2343096397
     locked: 0
+  - name: Field-icons
+    uniqueID: 1854859197
+    locked: 0
