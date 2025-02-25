@@ -133,12 +133,19 @@ namespace StarLine2D.Controllers
             return pathModel.Select(FindCellByModel).Where(c => c != null).ToList();
         }
 
+        // ВАЖНО: Исключаем первую клетку (позицию корабля) из линии
         public List<CellController> GetWeaponZone(Weapon weapon, CellController shootCell, CellController positionCell)
         {
             var zone = new List<CellController>();
             if (weapon.Type == WeaponType.Beam)
             {
-                return GetLine(positionCell, shootCell);
+                var line = GetLine(positionCell, shootCell);
+                if (line.Count > 0)
+                {
+                    // Убираем саму клетку, в которой стоит корабль
+                    line.RemoveAt(0);
+                }
+                return line;
             }
 
             zone.Add(shootCell);
