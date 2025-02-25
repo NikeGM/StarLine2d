@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b56e9b6f4784e51816ee9cbddcae7d6, type: 3}
+  m_Name: FontsLibrary
+  m_EditorClassIdentifier: 
+  fonts:
+  - fontName: PinnacleRegular
+    font: {fileID: 11400000, guid: 37d32614227be46e6aba43f031f218ba, type: 2}
+  - fontName: PinnacleDemiBold
+    font: {fileID: 11400000, guid: f66b282e1185f4667badc82433204611, type: 2}
+  - fontName: PinnacleBold
+    font: {fileID: 11400000, guid: eafa79740c4e94f51bbc2c7420450da2, type: 2}
+  - fontName: PinnacleExtraBold
+    font: {fileID: 11400000, guid: a6671a2d951eb456290aade08b1ead74, type: 2}
