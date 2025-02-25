@@ -133,6 +133,8 @@ MonoBehaviour:
   isPlayer: 1
   health:
     value: 100
+  score:
+    value: 0
   moveController: {fileID: 6038296220036402045}
   moveDistance: 10
   maxHealth: 100
@@ -147,6 +149,8 @@ MonoBehaviour:
     type: 1
     reload: 10
     shootCell: {fileID: 0}
+  shipShape: 0
+  positionCell: {fileID: 0}
 --- !u!114 &6038296220036402045
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -159,7 +163,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a22309d5f6f143d2b7a5d7ea94c8658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ship: {fileID: 6313968542848542829}
   durationRotation: 0.5
   durationPosition: 1
   turnFirst: 1

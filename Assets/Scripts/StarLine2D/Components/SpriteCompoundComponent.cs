@@ -24,14 +24,17 @@ namespace StarLine2D.Components
         {
             return profiles.Any(item => item.Id == profileId);
         }
-        
+
         public bool SetProfile(string profileId)
         {
             if (!HasProfile(profileId)) return false;
             current = profileId;
+
+            _updated = true;
+
             return true;
         }
-        
+
         public void UpdateSprites()
         {
             sprites = new List<SpriteRenderer>(GetComponentsInChildren<SpriteRenderer>());
@@ -70,7 +73,7 @@ namespace StarLine2D.Components
         private struct ProfileColor
         {
             [SerializeField] [Palette] public Color color;
-        } 
+        }
 
         [Serializable]
         private struct Profile
