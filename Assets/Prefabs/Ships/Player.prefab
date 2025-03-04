@@ -25,13 +25,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5544192785807302382}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
+  m_LocalScale: {x: 1.5, y: 1.5, z: 1.5}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 6869918273066749902}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90}
 --- !u!212 &1292949919734662076
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -73,8 +73,8 @@ SpriteRenderer:
   m_SortingLayerID: -1951870899
   m_SortingLayer: 2
   m_SortingOrder: 1
-  m_Sprite: {fileID: 21300000, guid: 45f7c38de6a4b4b0da71e950f8dc7dfe, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Sprite: {fileID: 1374840829, guid: dcfff3822a0b8419990ac1439594a40e, type: 3}
+  m_Color: {r: 0.32156864, g: 0.70980394, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 1
   m_DrawMode: 0
@@ -95,8 +95,9 @@ GameObject:
   - component: {fileID: 6869918273066749902}
   - component: {fileID: 6313968542848542829}
   - component: {fileID: 6038296220036402045}
+  - component: {fileID: -3226719049491621045}
   m_Layer: 0
-  m_Name: PlayerS2
+  m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -149,7 +150,7 @@ MonoBehaviour:
     type: 1
     reload: 10
     shootCell: {fileID: 0}
-  shipShape: 1
+  shipShape: 0
   positionCell: {fileID: 0}
 --- !u!114 &6038296220036402045
 MonoBehaviour:
@@ -163,7 +164,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a22309d5f6f143d2b7a5d7ea94c8658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ship: {fileID: 6313968542848542829}
   durationRotation: 0.5
   durationPosition: 1
   turnFirst: 1
@@ -175,3 +175,22 @@ MonoBehaviour:
     x: 0
     y: 0
     z: 1
+--- !u!114 &-3226719049491621045
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8457788082549557393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b4ada2b917643bcb21461ef474f61ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sprites:
+  - {fileID: 1292949919734662076}
+  current: 
+  profiles:
+  - id: 
+    colors:
+    - color: {r: 0.32156864, g: 0.70980394, b: 1, a: 1}

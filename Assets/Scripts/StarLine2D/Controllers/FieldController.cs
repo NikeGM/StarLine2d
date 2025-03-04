@@ -107,6 +107,17 @@ namespace StarLine2D.Controllers
                 .ToList();
         }
 
+        /// <summary>
+        /// Возвращает все клетки в заданном радиусе (radius) от указанной centerCell.
+        /// По сути, просто вызывает GetNeighbors(centerCell, radius).
+        /// </summary>
+        public List<CellController> GetCellsInRange(CellController centerCell, int radius)
+        {
+            if (centerCell == null) 
+                return new List<CellController>();
+            return GetNeighbors(centerCell, radius);
+        }
+
         public bool IsCellInZone(CellController cell, CellController center, int radius)
         {
             if (!cell || !center)

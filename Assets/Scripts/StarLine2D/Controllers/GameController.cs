@@ -11,13 +11,23 @@ namespace StarLine2D.Controllers
     {
         [SerializeField] private FieldController field;
 
-        // Списки префабов для игрока и врагов
+        // -------------------------------------------------------
+        // Префабы кораблей
+        // -------------------------------------------------------
+        
+        // Главный корабль игрока: можно выбрать индекс внутри списка
         [SerializeField] private List<GameObject> playerPrefabs;
-        [SerializeField] private List<GameObject> enemyPrefabs;
-
-        // Индексы выбранных префабов в списках (можно менять в инспекторе)
         [SerializeField] private int selectedPlayerIndex;
-        [SerializeField] private int selectedEnemyIndex;
+        
+        // Список вражеских префабов для случайного выбора
+        [SerializeField] private List<GameObject> enemyPrefabs;
+        // Количество вражеских кораблей
+        [SerializeField] private int numberOfEnemies = 3;
+        
+        // Список союзных префабов для случайного выбора
+        [SerializeField] private List<GameObject> allyPrefabs;
+        // Количество союзных кораблей
+        [SerializeField] private int numberOfAllies = 2;
 
         [SerializeField] private bool debugAlwaysHit;
 
@@ -32,16 +42,15 @@ namespace StarLine2D.Controllers
         // -------------------------------------------------------
         // Поля для генерации и хранения астероидов
         // -------------------------------------------------------
-
-        // --- Изменено: используем bigAsteroidPrefab для больших
-        [Header("Астероиды")] [SerializeField] private GameObject bigAsteroidPrefab; // Префаб большого
+        [Header("Астероиды")] 
+        [SerializeField] private GameObject bigAsteroidPrefab;   // Префаб большого
         [SerializeField] private GameObject smallAsteroidPrefab; // Префаб маленького
 
-        [SerializeField] private int numberOfAsteroids = 5; // Количество генерируемых больших астероидов
-        [SerializeField] private int minAsteroidHp = 5; // Минимальное HP
-        [SerializeField] private int maxAsteroidHp = 20; // Максимальное HP
-        [SerializeField] private float minAsteroidMass = 0.5f; // Минимальная масса
-        [SerializeField] private float maxAsteroidMass = 3.0f; // Максимальная масса
+        [SerializeField] private int numberOfAsteroids = 5;      // Количество генерируемых больших астероидов
+        [SerializeField] private int minAsteroidHp = 5;          // Минимальное HP
+        [SerializeField] private int maxAsteroidHp = 20;         // Максимальное HP
+        [SerializeField] private float minAsteroidMass = 0.5f;   // Минимальная масса
+        [SerializeField] private float maxAsteroidMass = 3.0f;   // Максимальная масса
 
         // Храним все созданные астероиды, чтобы управлять ими в конце раунда
         private readonly List<AsteroidController> _asteroids = new();
@@ -56,53 +65,125 @@ namespace StarLine2D.Controllers
         {
             field.Initialize();
             _trash.Retain(field.OnClick.Subscribe(OnCellClicked));
-            _ships = SetPlayersShips();
             _cellsStateController = field.GetComponent<CellsStateController>();
+            
+            // Спауним корабль игрока, несколько союзников и врагов
+            SpawnAllShips();
 
             // После инициализации поля и кораблей создаём астероиды
             SpawnAsteroids();
         }
 
         /// <summary>
-        /// Создаём корабль игрока и корабль врага в случайных клетках.
+        /// Спауним все корабли: игрока, союзников и врагов.
         /// </summary>
-        private List<ShipController> SetPlayersShips()
+        private void SpawnAllShips()
         {
-            // Берём 2 случайные клетки на поле
-            var randomCells = field.GetRandomCells(2);
-            var playerCell = randomCells[0];
-            var enemyCell = randomCells[1];
+            // Общее количество кораблей: 1 игрок + несколько союзников + несколько врагов
+            int totalShipsCount = 1 + numberOfAllies + numberOfEnemies;
 
-            // Инстанцируем корабли (изначально в (0,0))
+            // Берём соответствующее количество случайных клеток
+            var randomCells = field.GetRandomCells(totalShipsCount);
+            if (randomCells.Count < totalShipsCount)
+            {
+                Debug.LogError("Не хватает свободных клеток, чтобы разместить все корабли!");
+                return;
+            }
+
+            _ships = new List<ShipController>();
+
+            int cellIndex = 0;
+
+            // ----- Спауним главного игрока -----
+            if (playerPrefabs.Count == 0)
+            {
+                Debug.LogError("Список playerPrefabs пуст, некого спаунить для игрока!");
+                return;
+            }
+
             var playerPrefab = playerPrefabs[selectedPlayerIndex];
-            var enemyPrefab = enemyPrefabs[selectedEnemyIndex];
-            var player = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
-            var enemy = Instantiate(enemyPrefab, Vector3.zero, Quaternion.identity);
-
-            var shipsList = new List<ShipController>();
-            var playerShipController = player.GetComponent<ShipController>();
-            var enemyShipController = enemy.GetComponent<ShipController>();
-            var enemyController = enemy.GetComponent<EnemyController>();
-
-            shipsList.Add(playerShipController);
-            shipsList.Add(enemyShipController);
-
-            // Устанавливаем "головные" клетки
+            var playerCell = randomCells[cellIndex++];
+            var playerShipObj = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
+            var playerShipController = playerShipObj.GetComponent<ShipController>();
             playerShipController.PositionCell = playerCell;
-            enemyShipController.PositionCell = enemyCell;
 
-            // Ставим корабль в центр занимаемых клеток
-            player.transform.position = GetShapeCenter(playerShipController);
-            enemy.transform.position = GetShapeCenter(enemyShipController);
+            // Ставим корабль игрока на позицию и угол
+            playerShipObj.transform.position = GetShapeCenter(playerShipController);
+            playerShipObj.transform.rotation = Quaternion.Euler(0, 0, 0);
 
-            // Начальные углы
-            player.transform.rotation = Quaternion.Euler(0, 0, 0);
-            enemy.transform.rotation = Quaternion.Euler(0, 0, 180);
+            _ships.Add(playerShipController);
 
-            // Инициализация врага
-            enemyController.Initialize(enemyCell, field);
+            // ----- Спауним союзные корабли (numberOfAllies штук) -----
+            for (int i = 0; i < numberOfAllies; i++)
+            {
+                if (allyPrefabs.Count == 0)
+                {
+                    Debug.LogWarning("Список allyPrefabs пуст. Не получится заспаунить союзника.");
+                    break;
+                }
 
-            return shipsList;
+                var allyIndex = Random.Range(0, allyPrefabs.Count);
+                var allyPrefabGo = allyPrefabs[allyIndex];
+
+                var allyCell = randomCells[cellIndex++];
+                var allyObj = Instantiate(allyPrefabGo, Vector3.zero, Quaternion.identity);
+                var allyShipController = allyObj.GetComponent<ShipController>();
+
+                allyShipController.PositionCell = allyCell;
+                allyObj.transform.position = GetShapeCenter(allyShipController);
+
+                // При желании можно задать особый угол для союзников
+                allyObj.transform.rotation = Quaternion.Euler(0, 0, 0);
+
+                // Инициализируем AllyController (если есть)
+                var allyCtrl = allyObj.GetComponent<AllyController>();
+                if (allyCtrl != null)
+                {
+                    allyCtrl.Initialize(allyShipController, field, playerShipController);
+                }
+                else
+                {
+                    Debug.LogWarning($"Префаб {allyPrefabGo.name} не содержит AllyController!");
+                }
+
+                _ships.Add(allyShipController);
+            }
+
+            // ----- Спауним вражеские корабли (numberOfEnemies штук) -----
+            for (int i = 0; i < numberOfEnemies; i++)
+            {
+                if (enemyPrefabs.Count == 0)
+                {
+                    Debug.LogWarning("Список enemyPrefabs пуст. Не получится заспаунить врага.");
+                    break;
+                }
+
+                var enemyIndex = Random.Range(0, enemyPrefabs.Count);
+                var enemyPrefabGo = enemyPrefabs[enemyIndex];
+
+                var enemyCell = randomCells[cellIndex++];
+                var enemyObj = Instantiate(enemyPrefabGo, Vector3.zero, Quaternion.identity);
+                var enemyShipController = enemyObj.GetComponent<ShipController>();
+
+                enemyShipController.PositionCell = enemyCell;
+                enemyObj.transform.position = GetShapeCenter(enemyShipController);
+
+                // Начальный угол сделаем "смотрит вниз" (например 180)
+                enemyObj.transform.rotation = Quaternion.Euler(0, 0, 180);
+
+                // Инициализируем EnemyController (если есть)
+                var enemyCtrl = enemyObj.GetComponent<EnemyController>();
+                if (enemyCtrl != null)
+                {
+                    enemyCtrl.Initialize(enemyShipController, field);
+                }
+                else
+                {
+                    Debug.LogWarning($"Префаб {enemyPrefabGo.name} не содержит EnemyController!");
+                }
+
+                _ships.Add(enemyShipController);
+            }
         }
 
         /// <summary>
@@ -114,11 +195,17 @@ namespace StarLine2D.Controllers
         }
 
         /// <summary>
-        /// Клик "Position" - выбираем перемещение.
+        /// Клик "Position" - выбираем перемещение (игрок).
         /// </summary>
         public void OnPositionClicked()
         {
             var player = GetPlayerShip();
+            if (player == null)
+            {
+                Debug.LogError("Не найден корабль игрока!");
+                return;
+            }
+
             player.FlushShoots();
             player.MoveCell = null;
             _cellsStateController.ClearStaticCells();
@@ -126,11 +213,16 @@ namespace StarLine2D.Controllers
         }
 
         /// <summary>
-        /// Клик "Attack" (Weapon 0 / 1 / 2...). Ставим зону выстрела.
+        /// Клик "Attack" (Weapon 0 / 1 / 2...). Ставим зону выстрела для игрока.
         /// </summary>
         public void OnAttackClicked(int index)
         {
             var player = GetPlayerShip();
+            if (player == null)
+            {
+                Debug.LogError("Не найден корабль игрока!");
+                return;
+            }
             if (!player.MoveCell)
             {
                 Debug.Log("Сначала выберите, куда перемещается корабль!");
@@ -150,31 +242,60 @@ namespace StarLine2D.Controllers
         }
 
         /// <summary>
-        /// Вызывается, когда игрок закончил выбор перемещения/атаки и нужно завершить ход.
+        /// Метод «Завершить ход»: двигаем всех, даём врагам и союзникам время на логику, стреляем и проверяем коллизии.
         /// </summary>
         public IEnumerator TurnFinished()
         {
             _cellsStateController.ClearZone();
             _cellsStateController.ClearStaticCells();
 
+            // ------------------------------------------------------
+            // Удаление уничтоженных объектов (кораблей и астероидов)
+            // ------------------------------------------------------
+            _ships = _ships.Where(s => s != null && s.gameObject != null).ToList();
+            _asteroids.RemoveAll(a => a == null || a.gameObject == null);
+
+            // 1) Ход врагов (AI-логика) — куда двигаться и по кому стрелять
             var playerShip = GetPlayerShip();
-            var enemyShip = GetEnemyShip();
-            var enemyController = enemyShip.GetComponent<EnemyController>();
-
-            enemyController?.Move();
-            enemyController?.Shot(playerShip);
-
-            var isCollision = enemyShip.MoveCell == playerShip.MoveCell;
-
-            // Список корутин для одновременного движения
-            List<Coroutine> movementCoroutines = new List<Coroutine>
+            var allEnemyShips = _ships
+                .Where(s => !s.IsPlayer && s.GetComponent<EnemyController>() != null)
+                .ToList();
+            foreach (var eship in allEnemyShips)
             {
-                // Корабли двигаются по старой логике
-                StartCoroutine(MoveShip(playerShip)),
-                StartCoroutine(MoveShip(enemyShip))
-            };
+                var eCtrl = eship.GetComponent<EnemyController>();
+                if (eCtrl)
+                {
+                    eCtrl.Move();
+                    eCtrl.Shot(playerShip);
+                }
+            }
 
-            // Астероиды двигаются по новой логике — с пол-оборотом
+            // 2) Ход союзников
+            var allyShips = _ships
+                .Where(s => s.GetComponent<AllyController>() != null)
+                .ToList();
+            foreach (var aShip in allyShips)
+            {
+                var aCtrl = aShip.GetComponent<AllyController>();
+                if (aCtrl)
+                {
+                    aCtrl.Move();
+                    // Стреляем во врагов
+                    var enemiesForAllies = _ships
+                        .Where(s => s.GetComponent<EnemyController>() != null)
+                        .ToList();
+                    aCtrl.Shot(enemiesForAllies);
+                }
+            }
+
+            // 3) Движение всех кораблей
+            List<Coroutine> movementCoroutines = new List<Coroutine>();
+            foreach (var ship in _ships)
+            {
+                movementCoroutines.Add(StartCoroutine(MoveShip(ship)));
+            }
+
+            // Параллельно двигаются астероиды
             foreach (var asteroid in _asteroids)
             {
                 if (asteroid != null)
@@ -185,30 +306,42 @@ namespace StarLine2D.Controllers
                 }
             }
 
-            // Ждём, пока все закончат
+            // Ждём, пока все закончат движение
             foreach (var cor in movementCoroutines)
             {
                 yield return cor;
             }
 
-            // Далее идёт логика выстрелов, коллизий и т.д.
-            Shot(playerShip);
-            Shot(enemyShip);
-            if (isCollision)
+            // 4) Атака для всех кораблей
+            foreach (var ship in _ships)
             {
-                OnShipCollision(playerShip, enemyShip);
+                Shot(ship);
             }
 
+            // 5) Проверяем коллизии (если корабли оказались в одной клетке)
+            for (int i = 0; i < _ships.Count; i++)
+            {
+                for (int j = i + 1; j < _ships.Count; j++)
+                {
+                    var s1 = _ships[i];
+                    var s2 = _ships[j];
+                    if (s1.PositionCell == s2.PositionCell && s1.PositionCell != null)
+                    {
+                        OnShipCollision(s1, s2);
+                    }
+                }
+            }
+
+            // 6) Убираем «мертвые» астероиды из списка
             CleanupAsteroids();
         }
 
         /// <summary>
-        /// Плавное перемещение корабля ship.
-        /// Аналогично перемещению астероидов, но со своей логикой поворота.
+        /// Плавное перемещение корабля.
         /// </summary>
         private IEnumerator MoveShip(ShipController ship)
         {
-            if (ship.MoveCell == null)
+            if (ship == null || ship.MoveCell == null)
                 yield break;
 
             var oldCenter = GetShapeCenter(ship);
@@ -218,7 +351,7 @@ namespace StarLine2D.Controllers
 
             var newCenter = GetShapeCenter(ship);
 
-            // Вращение корабля на угол, соответствующий направлению движения
+            // Поворот корабля к цели
             var direction = newCenter - oldCenter;
             var angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
             ship.transform.rotation = Quaternion.Euler(0, 0, angle);
@@ -226,8 +359,15 @@ namespace StarLine2D.Controllers
             // Плавная интерполяция
             yield return SmoothMove(ship, oldCenter, newCenter, moveDuration);
 
-            // Возвращаем стандартный угол
-            ship.transform.rotation = Quaternion.Euler(0, 0, ship.IsPlayer ? 0 : 180);
+            // Возвращаем «стандартный» угол
+            if (ship.IsPlayer)
+            {
+                ship.transform.rotation = Quaternion.Euler(0, 0, 0);
+            }
+            else
+            {
+                ship.transform.rotation = Quaternion.Euler(0, 0, 180);
+            }
         }
 
         private IEnumerator SmoothMove(ShipController ship, Vector3 startPos, Vector3 endPos, float duration)
@@ -251,19 +391,22 @@ namespace StarLine2D.Controllers
         }
 
         /// <summary>
-        /// Атака (Point/Beam). Проверяем корабли и астероиды.
+        /// Выстрел из всех орудий корабля ship (проверяем попадание по другим кораблям и астероидам).
         /// </summary>
         private void Shot(ShipController ship)
         {
+            if (ship == null) return;
+
             foreach (var shipWeapon in ship.Weapons)
             {
-                if (!ship.PositionCell || !shipWeapon.ShootCell)
+                if (!ship.PositionCell || !shipWeapon.ShootCell) 
                     continue;
 
                 var shipCells = GetShipCells(ship);
                 CellController closestCell = null;
                 int minDistance = int.MaxValue;
 
+                // Ищем ближайшую «ячейку» корабля к ячейке выстрела
                 foreach (var cell in shipCells)
                 {
                     int dist = field.GetDistance(cell, shipWeapon.ShootCell);
@@ -278,9 +421,10 @@ namespace StarLine2D.Controllers
                     continue;
 
                 // Проверяем дальность
-                if (minDistance - 1 > shipWeapon.Range)
+                if (minDistance > shipWeapon.Range)
                     continue;
 
+                // Формируем набор клеток, куда идёт выстрел
                 var shootCells = new HashSet<CellController>();
                 if (shipWeapon.Type == WeaponType.Point)
                 {
@@ -298,9 +442,10 @@ namespace StarLine2D.Controllers
                         shootCells.Add(c);
                 }
 
-                // Анимация попадания и урон
+                // Анимация выстрела
                 shootCells.ToList().ForEach(c => c.ShotAnimation());
 
+                // Наносим урон
                 var damagedShips = new HashSet<ShipController>();
                 foreach (var cell in shootCells)
                 {
@@ -313,10 +458,12 @@ namespace StarLine2D.Controllers
                             var resultedDamage = damagedShip.OnDamage(shipWeapon.Damage);
                             if (damagedShip == ship)
                             {
+                                // Попал в самого себя
                                 ship.AddScore(-resultedDamage);
                             }
                             else
                             {
+                                // Попал во врага/другого
                                 ship.AddScore(resultedDamage);
                                 damagedShips.Add(damagedShip);
                             }
@@ -329,6 +476,7 @@ namespace StarLine2D.Controllers
                         if (asteroid != null)
                         {
                             var damageDone = asteroid.OnDamage(shipWeapon.Damage);
+                            // Немного очков, если астероид выжил, но получил урон
                             if (damageDone > 0 && asteroid.HP > 0)
                             {
                                 ship.AddScore(5);
@@ -337,12 +485,15 @@ namespace StarLine2D.Controllers
                     }
                 }
 
+                // Сброс ShootCell
                 shipWeapon.ShootCell = null;
             }
         }
 
         private void OnShipCollision(ShipController ship1, ShipController ship2)
         {
+            if (ship1 == null || ship2 == null) return;
+
             int ship1Hp = ship1.Health.Value;
             int ship2Hp = ship2.Health.Value;
 
@@ -400,26 +551,25 @@ namespace StarLine2D.Controllers
             return _ships.Find(item => item.PositionCell == cell);
         }
 
+        /// <summary>
+        /// Возвращает единственный корабль игрока (IsPlayer = true).
+        /// </summary>
         public ShipController GetPlayerShip()
         {
             return _ships.Find(item => item.IsPlayer);
         }
 
-        private ShipController GetEnemyShip()
-        {
-            return _ships.Find(item => !item.IsPlayer);
-        }
-
+        /// <summary>
+        /// Обработчик клика по клетке.
+        /// </summary>
         private void OnCellClicked(GameObject go)
         {
-            Debug.Log(go);
             if (go == field.gameObject) return;
-
             var cell = go.GetComponent<CellController>();
             var zone = _cellsStateController.Zone;
             if (zone is null) return;
 
-            // Если зона перемещения
+            // Зона перемещения
             if (_cellsStateController.Zone.Type == CellsStateController.MoveZone)
             {
                 var player = GetPlayerShip();
@@ -442,11 +592,15 @@ namespace StarLine2D.Controllers
                 return;
             }
 
-            // Если зона атаки
+            // Зона атаки
             if (_currentWeapon != -1 && _cellsStateController.Zone.Type == CellsStateController.WeaponZone)
             {
                 _cellsStateController.AddStaticCell(_currentWeapon.ToString(), cell, CellsStateController.WeaponActiveProfile);
-                GetPlayerShip().Weapons[_currentWeapon].ShootCell = cell;
+                var player = GetPlayerShip();
+                if (player)
+                {
+                    player.Weapons[_currentWeapon].ShootCell = cell;
+                }
                 _cellsStateController.ClearZone();
             }
         }
@@ -492,7 +646,7 @@ namespace StarLine2D.Controllers
         }
 
         // -------------------------------------------------------
-        // Генерация больших астероидов (Big)
+        // Генерация больших астероидов
         // -------------------------------------------------------
         private void SpawnAsteroids()
         {
@@ -502,35 +656,20 @@ namespace StarLine2D.Controllers
                 return;
             }
 
-            // Соберём список всех свободных клеток —
-            // тех, где не стоит ни корабль, ни другой астероид.
-            // Если хотите также исключать будущие клетки врагов и т.д.,
-            // отфильтруйте соответствующим образом.
-
             var freeCells = field.Cells.Where(cell =>
-                    // Убедимся, что нет уже астероида в этой клетке
                     !_asteroids.Any(a => a.PositionCell == cell)
-                    // И (опционально) нет корабля:
                     && !_ships.Any(s => s.PositionCell == cell)
                 )
-                // Перемешаем, чтобы брать случайные клетки
                 .OrderBy(_ => Random.value)
                 .ToList();
 
-            // Сколько астероидов нам нужно по плану
             int spawnCount = numberOfAsteroids;
-
-            // Если свободных клеток меньше, чем хотим заспавнить,
-            // спавним максимально возможное
             if (freeCells.Count < spawnCount)
                 spawnCount = freeCells.Count;
 
-            // Берём первые spawnCount клеток (после перемешивания это случайные)
             for (int i = 0; i < spawnCount; i++)
             {
                 var startCell = freeCells[i];
-
-                // Спавним префаб
                 var asteroidGo = Instantiate(bigAsteroidPrefab, startCell.transform.position, Quaternion.identity);
                 var asteroidCtrl = asteroidGo.GetComponent<AsteroidController>();
                 if (!asteroidCtrl)
@@ -539,13 +678,11 @@ namespace StarLine2D.Controllers
                     continue;
                 }
 
-                // Генерим рандомные статы, как и раньше
                 var randomSize = AsteroidSize.Big;
                 var randomHp = Random.Range(minAsteroidHp, maxAsteroidHp + 1);
                 var randomMass = Random.Range(minAsteroidMass, maxAsteroidMass);
                 var randomDirection = GetRandomDirection();
 
-                // Инициализируем
                 asteroidCtrl.Initialize(
                     randomSize,
                     randomHp,
@@ -554,15 +691,10 @@ namespace StarLine2D.Controllers
                     randomDirection
                 );
 
-                // Добавляем в список
                 _asteroids.Add(asteroidCtrl);
             }
         }
 
-
-        /// <summary>
-        /// Удаляем из списка все астероиды, которые были уничтожены (null).
-        /// </summary>
         private void CleanupAsteroids()
         {
             for (int i = _asteroids.Count - 1; i >= 0; i--)
@@ -574,9 +706,6 @@ namespace StarLine2D.Controllers
             }
         }
 
-        /// <summary>
-        /// Возвращает одно из 7 направлений (6 соседних + "стоять на месте") в куб. координатах.
-        /// </summary>
         private CubeCellModel GetRandomDirection()
         {
             var possibleDirections = new List<CubeCellModel>
@@ -594,39 +723,28 @@ namespace StarLine2D.Controllers
             return possibleDirections[index];
         }
 
-        // -------------------------------------------------------
-        // Спавним от 1 до 6 маленьких астероидов вокруг уничтоженного большого
-        // (в свободные соседние клетки).
-        // -------------------------------------------------------
+        /// <summary>
+        /// Спавним от 1 до 6 маленьких астероидов вокруг уничтоженного большого.
+        /// </summary>
         public void SpawnSmallAsteroids(AsteroidController bigAsteroid)
         {
             if (!smallAsteroidPrefab || !bigAsteroid) return;
             if (bigAsteroid.Size != AsteroidSize.Big) return;
 
-            // Находим соседние клетки (радиус 1)
             var neighbors = field.GetNeighbors(bigAsteroid.PositionCell, 1);
-
-            // Фильтруем занятые (где уже есть астероид/корабль)
             neighbors = neighbors.Where(cell =>
                 !_asteroids.Any(a => a && a.PositionCell == cell) &&
                 _ships.All(s => s.PositionCell != cell)).ToList();
 
-            // Рандомим, сколько именно спавнить (от 1 до 6)
             int spawnCount = Random.Range(1, 7);
-
-            // Если свободных клеток меньше, берём максимум, который влезет
             if (spawnCount > neighbors.Count)
                 spawnCount = neighbors.Count;
-
             if (spawnCount <= 0) return;
 
-            // Берём случайные свободные клетки из neighbors
             var randomNeighbors = neighbors.OrderBy(_ => Random.value).Take(spawnCount).ToList();
 
-            // Спавним маленькие астероиды
             foreach (var cell in randomNeighbors)
             {
-                // Направление = (cell - bigAsteroidCell)
                 var direction = new CubeCellModel(
                     cell.Q - bigAsteroid.PositionCell.Q,
                     cell.R - bigAsteroid.PositionCell.R,
@@ -636,7 +754,6 @@ namespace StarLine2D.Controllers
                 var smallGo = Instantiate(smallAsteroidPrefab, cell.transform.position, Quaternion.identity);
                 var smallCtrl = smallGo.GetComponent<AsteroidController>();
 
-                // ХП и масса меньше в 10 раз
                 int smallHp = Mathf.Max(1, bigAsteroid.HP / 10);
                 float smallMass = Mathf.Max(0.1f, bigAsteroid.Mass / 10f);
 
