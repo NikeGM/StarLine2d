@@ -8609,17 +8609,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   field: {fileID: 1677296064}
-  playerPrefabs:
-  - {fileID: 8457788082549557393, guid: 75db12a5259484192b4c00383a97d88d, type: 3}
-  - {fileID: 8457788082549557393, guid: 2bd5eeeaa680742c18a17eea7ffed409, type: 3}
+  allShipPrefabs:
+  - prefab: {fileID: 8457788082549557393, guid: 2bd5eeeaa680742c18a17eea7ffed409, type: 3}
+    type: 0
+  - prefab: {fileID: 8457788082549557393, guid: 75db12a5259484192b4c00383a97d88d, type: 3}
+    type: 0
+  - prefab: {fileID: 8457788082549557393, guid: 2bd5eeeaa680742c18a17eea7ffed409, type: 3}
+    type: 1
+  - prefab: {fileID: 8457788082549557393, guid: 75db12a5259484192b4c00383a97d88d, type: 3}
+    type: 1
+  - prefab: {fileID: 8457788082549557393, guid: 2bd5eeeaa680742c18a17eea7ffed409, type: 3}
+    type: 2
+  - prefab: {fileID: 8457788082549557393, guid: 75db12a5259484192b4c00383a97d88d, type: 3}
+    type: 2
   selectedPlayerIndex: 1
-  enemyPrefabs:
-  - {fileID: 7231466699880770099, guid: b17d8b0242f7d4b249a6543bce156f8e, type: 3}
-  - {fileID: 8457788082549557393, guid: 042f5c09eff0a4257a1805f21568fef0, type: 3}
   numberOfEnemies: 3
-  allyPrefabs:
-  - {fileID: 8457788082549557393, guid: 2c9ae193222e042828a91aa1b6543edf, type: 3}
-  - {fileID: 8457788082549557393, guid: 624b8821e4e904326985bdcf04688508, type: 3}
   numberOfAllies: 2
   debugAlwaysHit: 1
   moveDuration: 1

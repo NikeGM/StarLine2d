@@ -36,7 +36,6 @@ namespace StarLine2D.Controllers
 
     public class ShipController : MonoBehaviour
     {
-        [SerializeField] private bool isPlayer = false;
         [SerializeField] private IntObservableProperty health;
         [SerializeField] private IntObservableProperty score;
         [SerializeField] private MoveController moveController;
@@ -53,7 +52,7 @@ namespace StarLine2D.Controllers
 
         public CellController MoveCell { get; set; }
 
-        public bool IsPlayer => isPlayer;
+        // Убрали isPlayer — теперь тип корабля определяем по контроллерам (Player/Ally/Enemy)
         public IntObservableProperty Health => health;
         public IntObservableProperty Score => score;
         public int MaxHealth => maxHealth;
@@ -62,7 +61,7 @@ namespace StarLine2D.Controllers
         public List<Weapon> Weapons => weapons;
         public ShipShape ShipShape => shipShape;
 
-        // При изменении "головной" клетки пересчитываем модели
+        // При изменении "головной" клетки пересчитываем модели формы корабля
         public CellController PositionCell
         {
             get => positionCell;
