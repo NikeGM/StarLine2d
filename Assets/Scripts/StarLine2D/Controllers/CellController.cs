@@ -5,14 +5,14 @@ using UnityEngine;
 namespace StarLine2D.Controllers
 {
     [ExecuteInEditMode]
-    [RequireComponent(typeof(DisplayStateComponent))]
+    [RequireComponent(typeof(SpriteCompoundComponent))]
     [RequireComponent(typeof(OnClickComponent))]
     public class CellController : MonoBehaviour
     {
         [SerializeField] private ParticleSystem shotAnimation;
         [SerializeField] private ParticleSystem explosionAnimation;
         [SerializeField] private bool debugEnabled = true;
-        
+
         [SerializeField] private int q = 0;
         [SerializeField] private int r = 0;
         [SerializeField] private int s = 0;
@@ -21,10 +21,10 @@ namespace StarLine2D.Controllers
         public int R => r;
         public int S => s;
 
-        private DisplayStateComponent _displayState;
+        private SpriteCompoundComponent _spriteCompound;
         private OnClickComponent _onClick;
 
-        public DisplayStateComponent DisplayState => _displayState;
+        public SpriteCompoundComponent SpriteCompound => _spriteCompound;
         public OnClickComponent OnClick => _onClick;
 
         private TextMeshPro _text;
@@ -34,16 +34,16 @@ namespace StarLine2D.Controllers
         {
             Initialize();
         }
-        
+
         public void Initialize()
         {
             if (_initialized) return;
-            
-            _displayState = GetComponent<DisplayStateComponent>();
-            _displayState.SetState("default");
-            
+
+            _spriteCompound = GetComponent<SpriteCompoundComponent>();
+            _spriteCompound.SetProfile("default");
+
             _onClick = GetComponent<OnClickComponent>();
-            
+
             _text = GetComponentInChildren<TextMeshPro>(true);
 
             _initialized = true;
@@ -55,25 +55,26 @@ namespace StarLine2D.Controllers
             r = inputR;
             s = inputS;
         }
-        
+
         public void ShotAnimation()
         {
             PlayAnimation(shotAnimation);
         }
-        
+
         public void ExplosionAnimation()
         {
             PlayAnimation(explosionAnimation);
         }
+
         private void PlayAnimation(ParticleSystem particleAnimation)
         {
             if (explosionAnimation is null) return;
             var instance = Instantiate(particleAnimation, transform.position, Quaternion.identity) as ParticleSystem;
-            
+
             instance.transform.SetParent(transform);
-            
+
             instance.Play();
-            
+
             Destroy(instance.gameObject, instance.main.duration);
         }
 

@@ -26,56 +26,60 @@ namespace StarLine2D.UI
 
         private void Update()
         {
+            // Ищем все корабли на сцене
             var ships = FindObjectsOfType<ShipController>();
 
-            var player = ships.FirstOrDefault(item => item.IsPlayer);
-            if (player && playerHealthBar)
+            // Ищем корабль игрока по наличию PlayerController
+            var playerShip = ships.FirstOrDefault(s => s.GetComponent<PlayerController>() != null);
+            if (playerShip && playerHealthBar)
             {
-                playerHealthBar.Watch(player.Health);
+                playerHealthBar.Watch(playerShip.Health);
+            }
+            if (playerShip && playerScore)
+            {
+                playerScore.Watch(playerShip.Score);
             }
 
-            if (player && playerScore)
+            // Ищем первый попавшийся вражеский корабль (EnemyController)
+            var enemyShip = ships.FirstOrDefault(s => s.GetComponent<EnemyController>() != null);
+            if (enemyShip && enemyHealthBar)
             {
-                playerScore.Watch(player.Score);
+                enemyHealthBar.Watch(enemyShip.Health);
+            }
+            if (enemyShip && enemyScore)
+            {
+                enemyScore.Watch(enemyShip.Score);
             }
 
-            var enemy = ships.First(item => !item.IsPlayer);
-            if (enemy && enemyHealthBar)
-            {
-                enemyHealthBar.Watch(enemy.Health);
-            }
-
-            if (enemy && enemyScore)
-            {
-                enemyScore.Watch(enemy.Score);
-            }
-
+            // Ищем GameController, если ещё не нашли
             if (!_game)
             {
                 _game = FindObjectOfType<GameController>();
             }
 
+            // Ищем InputController, если ещё не нашли
             if (!_inputController)
             {
                 _inputController = FindObjectOfType<InputController>();
             }
 
+            // Запускаем анимацию обратного отсчёта (если есть)
             if (turnCountdown) turnCountdown.StartCountdown();
         }
 
         public void OnPositionClicked()
         {
-            _game.OnPositionClicked();
+            if (_game) _game.OnPositionClicked();
         }
 
         public void OnWeaponClicked_1()
         {
-            _game.OnAttackClicked(0);
+            if (_game) _game.OnAttackClicked(0);
         }
 
         public void OnWeaponClicked_2()
         {
-            _game.OnAttackClicked(1);
+            if (_game) _game.OnAttackClicked(1);
         }
 
         public void OnFinishClicked()
@@ -97,7 +101,11 @@ namespace StarLine2D.UI
             if (turnCountdown) turnCountdown.Flush();
             DisableUI();
 
-            yield return _game.TurnFinished();
+            // Дожидаемся окончания «хода»
+            if (_game)
+            {
+                yield return _game.TurnFinished();
+            }
 
             EnableUI();
             if (turnCountdown) turnCountdown.StartCountdown();

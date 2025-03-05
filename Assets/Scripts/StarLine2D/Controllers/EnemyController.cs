@@ -1,69 +1,96 @@
-using UnityEngine;
+using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
+using StarLine2D.Models;
 
 namespace StarLine2D.Controllers
 {
+    /// <summary>
+    /// Пример простого AI для вражеского корабля.
+    /// </summary>
+    [RequireComponent(typeof(ShipController))]
     public class EnemyController : MonoBehaviour
     {
-        private FieldController _field;
+        private ShipController ship;
+        private FieldController field;
 
-
-        public void Initialize(CellController cell, FieldController fieldController)
+        /// <summary>
+        /// Инициализатор, чтобы передать ссылки на ShipController и FieldController.
+        /// </summary>
+        public void Initialize(ShipController ship, FieldController field)
         {
-            _field = fieldController;
+            this.ship = ship;
+            this.field = field;
         }
 
+        /// <summary>
+        /// Вызываем этот метод в GameController при завершении хода,
+        /// чтобы враг выбрал, куда перемещаться.
+        /// </summary>
         public void Move()
         {
-            var ship = GetComponent<ShipController>();
-
-            var enemyMoveTarget = GetMoveCell();
-            ship.MoveCell = enemyMoveTarget;
-        }
-
-        public void Shot(ShipController playerShip)
-        {
-            var ship = GetComponent<ShipController>();
-            foreach (var shipWeapon in ship.Weapons)
+            if (ship == null || field == null) 
             {
-                var enemyShotTarget = GetShotCell(playerShip, shipWeapon.Range);
-                shipWeapon.ShootCell = enemyShotTarget;
+                Debug.LogWarning($"EnemyController on {gameObject.name} не инициализирован!");
+                return;
+            }
+
+            var targetCell = GetMoveCell();
+            if (targetCell != null)
+            {
+                ship.MoveCell = targetCell;
             }
         }
 
-        private CellController GetShotCell(ShipController playerShip, int distance)
+        /// <summary>
+        /// Выстрел в корабль игрока (или другую цель) таким образом, что для каждого оружия
+        /// выбирается случайная точка в зоне, куда может переместиться этот противник.
+        /// </summary>
+        public void Shot(ShipController targetShip)
         {
-            var ship = GetComponent<ShipController>();
-            var cell = ship.PositionCell;
-            var canShootCells = _field.GetNeighbors(cell, distance);
-            var enemyNewPositionCells = _field.GetNeighbors(playerShip.PositionCell, playerShip.MoveDistance);
+            if (ship == null || field == null || targetShip == null) 
+                return;
 
-            var intersectingCells = canShootCells.Intersect(enemyNewPositionCells).ToList();
+            if (ship.Weapons.Count == 0) 
+                return;
 
-            if (intersectingCells.Count == 0)
+            // Получаем все клетки в радиусе перемещения цели (targetShip.MoveDistance)
+            // из которых цель может начать следующий ход
+            var potentialMoveCells = field.GetCellsInRange(targetShip.PositionCell, targetShip.MoveDistance);
+
+            // Для каждого оружия выбираем случайную клетку из potentialMoveCells,
+            // которая находится в пределах дальности выстрела оружия
+            foreach (var weapon in ship.Weapons)
             {
-                return null;
-            }
+                // Фильтруем клетки по радиусу действия оружия
+                var inRangeCells = potentialMoveCells
+                    .Where(c => field.GetDistance(ship.PositionCell, c) <= weapon.Range)
+                    .ToList();
 
-            var randomIndex = Random.Range(0, intersectingCells.Count);
-            return intersectingCells[randomIndex];
+                if (inRangeCells.Count > 0)
+                {
+                    int randomIndex = Random.Range(0, inRangeCells.Count);
+                    var chosenCell = inRangeCells[randomIndex];
+                    weapon.ShootCell = chosenCell;
+                }
+            }
         }
 
+        /// <summary>
+        /// Ищем клетку для перемещения: к примеру, выбираем любую соседнюю клетку (радиус 1).
+        /// </summary>
         private CellController GetMoveCell()
         {
-            var ship = GetComponent<ShipController>();
-            var cell = ship.PositionCell;
-            return GetRandomCellInRange(cell, ship.MoveDistance);
-        }
-
-        private CellController GetRandomCellInRange(CellController centerCell, int radius)
-        {
-            var neighbors = _field.GetNeighbors(centerCell, radius);
-            if (neighbors.Count == 0)
-            {
+            if (ship == null || ship.PositionCell == null)
                 return null;
-            }
+            if (field == null)
+                return null;
 
+            var neighbors = field.GetNeighbors(ship.PositionCell, 1);
+            if (neighbors.Count == 0)
+                return ship.PositionCell;
+
+            // Случайно выбираем одну из соседних клеток (можно усложнить логику)
             var randomIndex = Random.Range(0, neighbors.Count);
             return neighbors[randomIndex];
         }

@@ -80,7 +80,7 @@ namespace StarLine2D.Controllers
         {
             var tmpCell = Instantiate(cellPrefab, transform);
             var cellCollider = tmpCell.GetComponent<Collider2D>();
-            var offset = 0.1f;
+            var offset = 0.15f;
             _cellHeight = (cellCollider.bounds.size.y + offset) / 2;
             _cellWidth = _cellHeight * Mathf.Sqrt(3) / 2;
             Debug.Log(_cellWidth + " " + _cellHeight);
@@ -105,6 +105,17 @@ namespace StarLine2D.Controllers
                 .Select(FindCellByModel)
                 .Where(controller => controller is not null)
                 .ToList();
+        }
+
+        /// <summary>
+        /// Возвращает все клетки в заданном радиусе (radius) от указанной centerCell.
+        /// По сути, просто вызывает GetNeighbors(centerCell, radius).
+        /// </summary>
+        public List<CellController> GetCellsInRange(CellController centerCell, int radius)
+        {
+            if (centerCell == null) 
+                return new List<CellController>();
+            return GetNeighbors(centerCell, radius);
         }
 
         public bool IsCellInZone(CellController cell, CellController center, int radius)
@@ -133,12 +144,19 @@ namespace StarLine2D.Controllers
             return pathModel.Select(FindCellByModel).Where(c => c != null).ToList();
         }
 
+        // ВАЖНО: Исключаем первую клетку (позицию корабля) из линии
         public List<CellController> GetWeaponZone(Weapon weapon, CellController shootCell, CellController positionCell)
         {
             var zone = new List<CellController>();
             if (weapon.Type == WeaponType.Beam)
             {
-                return GetLine(positionCell, shootCell);
+                var line = GetLine(positionCell, shootCell);
+                if (line.Count > 0)
+                {
+                    // Убираем саму клетку, в которой стоит корабль
+                    line.RemoveAt(0);
+                }
+                return line;
             }
 
             zone.Add(shootCell);
