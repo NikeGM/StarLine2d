@@ -6201,8 +6201,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   field: {fileID: 1677296064}
+<<<<<<< Updated upstream
   playerPrefab: {fileID: 8457788082549557393, guid: 75db12a5259484192b4c00383a97d88d, type: 3}
   enemyPrefab: {fileID: 7231466699880770099, guid: b17d8b0242f7d4b249a6543bce156f8e, type: 3}
+=======
+  allShipPrefabs:
+  - prefab: {fileID: 8457788082549557393, guid: 2bd5eeeaa680742c18a17eea7ffed409, type: 3}
+    type: 0
+  - prefab: {fileID: 8457788082549557393, guid: 75db12a5259484192b4c00383a97d88d, type: 3}
+    type: 0
+  - prefab: {fileID: 8457788082549557393, guid: 2bd5eeeaa680742c18a17eea7ffed409, type: 3}
+    type: 1
+  - prefab: {fileID: 8457788082549557393, guid: 75db12a5259484192b4c00383a97d88d, type: 3}
+    type: 1
+  - prefab: {fileID: 8457788082549557393, guid: 2bd5eeeaa680742c18a17eea7ffed409, type: 3}
+    type: 2
+  - prefab: {fileID: 8457788082549557393, guid: 75db12a5259484192b4c00383a97d88d, type: 3}
+    type: 2
+  selectedPlayerIndex: 0
+  numberOfEnemies: 3
+  numberOfAllies: 2
+>>>>>>> Stashed changes
   debugAlwaysHit: 1
 --- !u!1001 &630331673
 PrefabInstance:
