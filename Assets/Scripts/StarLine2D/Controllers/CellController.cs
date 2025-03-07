@@ -30,6 +30,10 @@ namespace StarLine2D.Controllers
         private TextMeshPro _text;
         private bool _initialized = false;
 
+        // >>> Новое: препятствие <<<
+        private ObstacleController _obstacle;
+        public bool HasObstacle => _obstacle != null;
+
         private void Start()
         {
             Initialize();
@@ -68,11 +72,10 @@ namespace StarLine2D.Controllers
 
         private void PlayAnimation(ParticleSystem particleAnimation)
         {
-            if (explosionAnimation is null) return;
+            if (particleAnimation is null) return;
             var instance = Instantiate(particleAnimation, transform.position, Quaternion.identity) as ParticleSystem;
 
             instance.transform.SetParent(transform);
-
             instance.Play();
 
             Destroy(instance.gameObject, instance.main.duration);
@@ -83,6 +86,12 @@ namespace StarLine2D.Controllers
             if (!_text) return;
             _text.text = $"{Q}, {R}, {S}";
             _text.enabled = debugEnabled;
+        }
+
+        // >>> Новое: назначить препятствие <<<
+        public void SetObstacle(ObstacleController obstacle)
+        {
+            _obstacle = obstacle;
         }
     }
 }

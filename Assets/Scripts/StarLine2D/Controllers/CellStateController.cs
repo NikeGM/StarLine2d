@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace StarLine2D.Controllers
@@ -11,13 +12,10 @@ namespace StarLine2D.Controllers
 
         // Текущая зона (MoveZone / WeaponZone и т.п.)
         private ZoneModel _currentZone;
-
         // Все клетки, входящие в текущую «зону»
         private HashSet<CellController> _zoneCells;
-
         // Статические клетки (MovePoint, WeaponPoint и т.д.)
         private Dictionary<string, StaticCellModel> _staticCells;
-
         // Текущая клетка под курсором (hover)
         private CellController _hoveredCell;
 
@@ -26,10 +24,10 @@ namespace StarLine2D.Controllers
         public const string ZoneProfile            = "zone";
         public const string WeaponHoverZoneProfile = "weapon-hover-zone";
         public const string WeaponHoverProfile     = "weapon-hover";
-        public const string WeaponActiveProfile    = "weapon-active"; // заменяет ShootPoint
+        public const string WeaponActiveProfile    = "weapon-active"; 
         public const string MoveHoverProfile       = "move-hover";
-        public const string MoveActiveProfile      = "move-active";   // заменяет MovePoint
-        
+        public const string MoveActiveProfile      = "move-active";   
+
         // ---------- ТИПЫ ЗОНЫ ----------
         public const string MoveZone   = "move-zone";
         public const string WeaponZone = "weapon-zone";
@@ -57,9 +55,6 @@ namespace StarLine2D.Controllers
             _zoneCells   = new HashSet<CellController>();
         }
 
-        /// <summary>
-        /// Отрисовывает все клетки: зона, ховер, статические метки и т.п.
-        /// </summary>
         public void Render()
         {
             // 1) Сброс состояния (ставим профиль "default" для всех клеток)
@@ -68,7 +63,7 @@ namespace StarLine2D.Controllers
                 cell.SpriteCompound.SetProfile(DefaultProfile);
             }
 
-            // 2) Подсветка всех клеток зоны (если зона есть)
+            // 2) Подсветка всех клеток зоны
             if (_currentZone != null && _zoneCells != null)
             {
                 foreach (var cell in _zoneCells)
@@ -82,7 +77,7 @@ namespace StarLine2D.Controllers
                                 && _currentZone != null
                                 && _zoneCells.Contains(_hoveredCell));
 
-            // Если оружие лучевое (Beam) и мы ховеримся внутри зоны
+            // Если это WeaponZone с лучевым оружием (Beam) и мы ховеримся внутри зоны
             if (_currentZone?.WeaponType == "Beam" && hoverInZone)
             {
                 var hoverLine = _fieldController.GetLine(_currentZone.Center, _hoveredCell);
@@ -95,11 +90,11 @@ namespace StarLine2D.Controllers
             // Подсветка самой hovered-клетки
             if (hoverInZone)
             {
-                // Если это зона перемещения, используем MoveHoverProfile, иначе WeaponHoverProfile
+                // MoveZone => MoveHoverProfile, иначе WeaponHoverProfile
                 string hoverState = (_currentZone.Type == MoveZone) ? MoveHoverProfile : WeaponHoverProfile;
                 _hoveredCell.SpriteCompound.SetProfile(hoverState);
 
-                // Доп. правило: если это MoveZone, проверяем «двухклеточный корабль»
+                // Доп. правило: если это MoveZone и двухклеточный корабль
                 if (_currentZone.Type == MoveZone && _gameController != null)
                 {
                     var playerShip = _gameController.GetPlayerShip();
@@ -107,25 +102,15 @@ namespace StarLine2D.Controllers
                     {
                         var shapeCells = _gameController.GetShapeCells(playerShip.ShipShape, _hoveredCell);
 
-                        // Если форма пустая, просто оставляем клетку как "zone"
                         if (shapeCells.Count == 0)
                         {
                             _hoveredCell.SpriteCompound.SetProfile(ZoneProfile);
                         }
                         else
                         {
-                            bool entireShapeInZone = true;
-                            foreach (var sc in shapeCells)
-                            {
-                                if (!_zoneCells.Contains(sc))
-                                {
-                                    entireShapeInZone = false;
-                                    break;
-                                }
-                            }
+                            bool entireShapeInZone = shapeCells.All(sc => _zoneCells.Contains(sc));
                             if (entireShapeInZone)
                             {
-                                // Все клетки формы выделяем "move-hover"
                                 foreach (var sc in shapeCells)
                                 {
                                     sc.SpriteCompound.SetProfile(MoveHoverProfile);
@@ -144,14 +129,10 @@ namespace StarLine2D.Controllers
             // 4) Статические клетки (MoveActiveProfile, WeaponActiveProfile, и т.д.)
             foreach (var staticCell in _staticCells.Values)
             {
-                // staticCell.Type, например, "move-active" или "weapon-active"
                 staticCell.Cell.SpriteCompound.SetProfile(staticCell.Type);
             }
         }
 
-        /// <summary>
-        /// Устанавливает зону (например, для перемещения).
-        /// </summary>
         public void SetZone(CellController center, int radius, string type, string weaponType)
         {
             Debug.Log($"SetZone called {center} radius={radius}, type={type}");
@@ -171,29 +152,39 @@ namespace StarLine2D.Controllers
                 if (playerShip != null)
                 {
                     var shipCells = _gameController.GetShipCells(playerShip);
+
                     var unionSet = new HashSet<CellController>();
-                    // Расширяем зону от каждой клетки корабля
+
+                    // Для каждой клетки, занимаемой кораблём, берём соседей
                     foreach (var cellInShip in shipCells)
                     {
                         var neighbors = _fieldController.GetNeighbors(cellInShip, radius);
                         neighbors.Add(cellInShip);
+
+                        // >>> Новое: убираем те, где есть препятствие <<<
+                        neighbors = neighbors.Where(c => !c.HasObstacle).ToList();
+
                         unionSet.UnionWith(neighbors);
                     }
                     _zoneCells = unionSet;
                 }
             }
-            // Если это зона оружия
+            // Если это зона оружия (WeaponZone)
             else if (type == WeaponZone && _gameController != null)
             {
                 var playerShip = _gameController.GetPlayerShip();
                 if (playerShip != null)
                 {
                     var shipCells = _gameController.GetShipCells(playerShip);
+
                     var unionSet = new HashSet<CellController>();
                     foreach (var cellInShip in shipCells)
                     {
                         var neighbors = _fieldController.GetNeighbors(cellInShip, radius);
                         neighbors.Add(cellInShip);
+                        // Для WeaponZone обычно можно стрелять через препятствия,
+                        // но если хотите запретить, тоже фильтруйте. 
+                        // В примере не фильтруем.
                         unionSet.UnionWith(neighbors);
                     }
                     _zoneCells = unionSet;
@@ -203,14 +194,9 @@ namespace StarLine2D.Controllers
             Render();
         }
 
-        /// <summary>
-        /// Новый метод: устанавливает зону атаки (WeaponZone) 
-        /// для позиций, которые корабль займёт после перемещения.
-        /// </summary>
         public void SetWeaponZoneForFuturePosition(List<CellController> shapeCells, int radius, string weaponType)
         {
             var center = (shapeCells.Count > 0) ? shapeCells[0] : null;
-
             _currentZone = new ZoneModel
             {
                 Center = center,
@@ -225,6 +211,8 @@ namespace StarLine2D.Controllers
             {
                 var neighbors = _fieldController.GetNeighbors(sc, radius);
                 neighbors.Add(sc);
+                // Для оружия не фильтруем препятствия, 
+                // но при желании можете убрать их, если недоступен выстрел.
                 unionSet.UnionWith(neighbors);
             }
 
@@ -239,10 +227,6 @@ namespace StarLine2D.Controllers
             Render();
         }
 
-        /// <summary>
-        /// Добавляет "статическую" клетку с определённым профилем (типом).
-        /// Например: AddStaticCell("id1", cell, CellsStateController.MoveActiveProfile);
-        /// </summary>
         public void AddStaticCell(string id, CellController cell, string type)
         {
             if (_staticCells.ContainsKey(id))
