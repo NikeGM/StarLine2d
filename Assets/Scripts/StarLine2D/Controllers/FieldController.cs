@@ -25,7 +25,7 @@ namespace StarLine2D.Controllers
         private CubeGridModel cubeGridModel;
 
         public OnClickComponent OnClick => _onClick;
-        public List<CellController> Cells => _cells;
+        public List<CellController> Cells => _cells; 
         public CubeGridModel CubeGridModel => cubeGridModel;
         public CellsStateController CellStateController => cellsStateController;
 
@@ -107,10 +107,6 @@ namespace StarLine2D.Controllers
                 .ToList();
         }
 
-        /// <summary>
-        /// Возвращает все клетки в заданном радиусе (radius) от указанной centerCell.
-        /// По сути, просто вызывает GetNeighbors(centerCell, radius).
-        /// </summary>
         public List<CellController> GetCellsInRange(CellController centerCell, int radius)
         {
             if (centerCell == null) 
@@ -144,7 +140,6 @@ namespace StarLine2D.Controllers
             return pathModel.Select(FindCellByModel).Where(c => c != null).ToList();
         }
 
-        // ВАЖНО: Исключаем первую клетку (позицию корабля) из линии
         public List<CellController> GetWeaponZone(Weapon weapon, CellController shootCell, CellController positionCell)
         {
             var zone = new List<CellController>();
@@ -153,7 +148,6 @@ namespace StarLine2D.Controllers
                 var line = GetLine(positionCell, shootCell);
                 if (line.Count > 0)
                 {
-                    // Убираем саму клетку, в которой стоит корабль
                     line.RemoveAt(0);
                 }
                 return line;
