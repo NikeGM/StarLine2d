@@ -10,17 +10,6 @@ using Random = UnityEngine.Random;
 
 namespace StarLine2D.Controllers
 {
-    // >>>> Новый enum типа корабля <<<<
-    // public enum ShipType
-    // {
-    //     Player,
-    //     Ally,
-    //     Enemy
-    // }
-}
-
-namespace StarLine2D.Controllers
-{
     // >>>> Структура для хранения префаба и его типа <<<<
     [Serializable]
     public class ShipPrefabData
