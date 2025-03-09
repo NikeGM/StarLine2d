@@ -97,7 +97,7 @@ GameObject:
   - component: {fileID: 6038296220036402045}
   - component: {fileID: -974983530531738569}
   m_Layer: 0
-  m_Name: ShipBig
+  m_Name: PlayerBig
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

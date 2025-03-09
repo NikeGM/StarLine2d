@@ -8609,24 +8609,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   field: {fileID: 1677296064}
-  allShipPrefabs:
-  - prefab: {fileID: 8457788082549557393, guid: 2bd5eeeaa680742c18a17eea7ffed409, type: 3}
-    type: 0
-  - prefab: {fileID: 8457788082549557393, guid: 75db12a5259484192b4c00383a97d88d, type: 3}
-    type: 0
-  - prefab: {fileID: 8457788082549557393, guid: 2bd5eeeaa680742c18a17eea7ffed409, type: 3}
-    type: 1
-  - prefab: {fileID: 8457788082549557393, guid: 75db12a5259484192b4c00383a97d88d, type: 3}
-    type: 1
-  - prefab: {fileID: 8457788082549557393, guid: 2bd5eeeaa680742c18a17eea7ffed409, type: 3}
-    type: 2
-  - prefab: {fileID: 8457788082549557393, guid: 75db12a5259484192b4c00383a97d88d, type: 3}
-    type: 2
-  selectedPlayerIndex: 1
+  playerShip: {fileID: 6313968542848542829, guid: 75db12a5259484192b4c00383a97d88d, type: 3}
   numberOfEnemies: 3
   numberOfAllies: 2
-  debugAlwaysHit: 1
-  moveDuration: 1
   bigAsteroidPrefab: {fileID: 8457788082549557393, guid: 64eb477df755b46c39a7a4a0d9e99f92, type: 3}
   smallAsteroidPrefab: {fileID: 8457788082549557393, guid: 39550a74376174ff5b0280b490d29e9c, type: 3}
   numberOfAsteroids: 5
@@ -8634,6 +8619,8 @@ MonoBehaviour:
   maxAsteroidHp: 20
   minAsteroidMass: 0.5
   maxAsteroidMass: 3
+  obstaclePrefabs: []
+  numberOfObstacles: 3
 --- !u!1001 &624429960
 PrefabInstance:
   m_ObjectHideFlags: 0
