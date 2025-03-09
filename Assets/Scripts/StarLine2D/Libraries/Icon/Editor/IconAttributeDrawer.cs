@@ -1,40 +1,40 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace StarLine2D.UI.Widgets.Palette.Editor
+namespace StarLine2D.Libraries.Icon.Editor
 {
-    [CustomPropertyDrawer(typeof(PaletteAttribute))]
-    public class PaletteAttributeDrawer : PropertyDrawer
+    [CustomPropertyDrawer(typeof(IconAttribute))]
+    public class IconAttributeDrawer : PropertyDrawer
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            if (property.propertyType != SerializedPropertyType.Color)
+            if (property.propertyType != SerializedPropertyType.ObjectReference)
             {
                 EditorGUI.PropertyField(position, property, label);
                 return;
             }
             
-            if (PaletteLibrary.I.Count == 0)
+            if (IconsLibrary.I.Count == 0)
             {
                 EditorGUI.PropertyField(position, property, label);
                 return;
             }
 
-            var currentColor = property.colorValue;
-            var currentIndex = PaletteLibrary.I.GetIndex(currentColor);
+            var currentColor = property.objectReferenceValue as Sprite;
+            var currentIndex = IconsLibrary.I.GetIndex(currentColor);
             if (currentIndex == -1)
             {
-                currentIndex = PaletteLibrary.I.GetIndex(PaletteLibrary.I.GetDefaultColor());
+                currentIndex = 0;
             }
 
-            var options = PaletteLibrary.I.GetAllNames().ToArray();
+            var options = IconsLibrary.I.GetAllNames().ToArray();
             var selectedIndex = EditorGUI.Popup(
                 position, 
                 label.text, 
                 currentIndex, 
                 options
             );
-            property.colorValue = PaletteLibrary.I.GetColor(selectedIndex);
+            property.objectReferenceValue = IconsLibrary.I.GetSprite(selectedIndex);
         }
     }
 }

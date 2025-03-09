@@ -1,40 +1,40 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace StarLine2D.UI.Widgets.Text.Editor
+namespace StarLine2D.Libraries.Palette.Editor
 {
-    [CustomPropertyDrawer(typeof(FontSizeAttribute))]
-    public class FontSizeAttributeDrawer : PropertyDrawer
+    [CustomPropertyDrawer(typeof(PaletteAttribute))]
+    public class PaletteAttributeDrawer : PropertyDrawer
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            if (property.propertyType != SerializedPropertyType.Integer)
+            if (property.propertyType != SerializedPropertyType.Color)
             {
                 EditorGUI.PropertyField(position, property, label);
                 return;
             }
             
-            if (FontSizesLibrary.I.Count == 0)
+            if (PaletteLibrary.I.Count == 0)
             {
                 EditorGUI.PropertyField(position, property, label);
                 return;
             }
 
-            var currentSize = property.intValue;
-            var currentIndex = FontSizesLibrary.I.GetIndex(currentSize);
+            var currentColor = property.colorValue;
+            var currentIndex = PaletteLibrary.I.GetIndex(currentColor);
             if (currentIndex == -1)
             {
-                currentIndex = FontSizesLibrary.I.GetIndex(FontSizesLibrary.I.GetDefaultSize());
+                currentIndex = PaletteLibrary.I.GetIndex(PaletteLibrary.I.GetDefaultColor());
             }
 
-            var options = FontSizesLibrary.I.GetAllNames().ToArray();
+            var options = PaletteLibrary.I.GetAllNames().ToArray();
             var selectedIndex = EditorGUI.Popup(
                 position, 
                 label.text, 
                 currentIndex, 
                 options
             );
-            property.intValue = FontSizesLibrary.I.GetSize(selectedIndex);
+            property.colorValue = PaletteLibrary.I.GetColor(selectedIndex);
         }
     }
 }

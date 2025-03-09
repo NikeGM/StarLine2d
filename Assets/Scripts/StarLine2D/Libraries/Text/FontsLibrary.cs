@@ -4,7 +4,7 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 
-namespace StarLine2D.UI.Widgets.Text
+namespace StarLine2D.Libraries.Text
 {
     [CreateAssetMenu(menuName = "Custom/FontsLibrary", fileName = "FontsLibrary")]
     public class FontsLibrary : ScriptableObject

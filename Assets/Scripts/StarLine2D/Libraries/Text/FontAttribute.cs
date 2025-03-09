@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace StarLine2D.UI.Widgets.Text
+namespace StarLine2D.Libraries.Text
 {
     public class FontAttribute : PropertyAttribute
     {

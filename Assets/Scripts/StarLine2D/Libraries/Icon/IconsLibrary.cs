@@ -1,9 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace StarLine2D.UI.Widgets.Icon
+namespace StarLine2D.Libraries.Icon
 {
     [CreateAssetMenu(menuName = "Custom/IconsLibrary", fileName = "IconsLibrary")]
     public class IconsLibrary : ScriptableObject
