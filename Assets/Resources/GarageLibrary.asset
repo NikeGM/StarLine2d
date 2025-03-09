@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 374e732de63442938fecc93d2e1644e4, type: 3}
+  m_Name: GarageLibrary
+  m_EditorClassIdentifier: 
+  items:
+  - name: PlayerBig
+    shipPrefab: {fileID: 6313968542848542829, guid: 2bd5eeeaa680742c18a17eea7ffed409, type: 3}
+    shipType: 0
+  - name: PlayerSmall
+    shipPrefab: {fileID: 6313968542848542829, guid: 75db12a5259484192b4c00383a97d88d, type: 3}
+    shipType: 0
+  - name: AllyBig
+    shipPrefab: {fileID: 6313968542848542829, guid: 19e5bbd5f7ba84f6eb65ccb58fc1f594, type: 3}
+    shipType: 1
+  - name: AllySmall
+    shipPrefab: {fileID: 6313968542848542829, guid: 410ccc8f3ff484b8d8a12c6a01ec69cb, type: 3}
+    shipType: 1
+  - name: EnemyBig
+    shipPrefab: {fileID: 6313968542848542829, guid: b2536cfe0a88146ad845146e9ab1cacd, type: 3}
+    shipType: 2
+  - name: EnemySmall
+    shipPrefab: {fileID: 6313968542848542829, guid: 0dcfc465bdc0b4e8f9f5cb74ffe3083b, type: 3}
+    shipType: 2

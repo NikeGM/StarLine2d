@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace StarLine2D.UI.Widgets.Palette
+namespace StarLine2D.Libraries.Palette
 {
     [CreateAssetMenu(menuName = "Custom/PaletteLibrary", fileName = "PaletteLibrary")]
     public class PaletteLibrary : ScriptableObject

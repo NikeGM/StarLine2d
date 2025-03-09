@@ -1,5 +1,6 @@
 using System;
-using StarLine2D.UI.Widgets.Palette;
+using StarLine2D.Libraries.Palette;
+using StarLine2D.Libraries.Text;
 using TMPro;
 using UnityEngine;
 

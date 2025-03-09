@@ -1,4 +1,4 @@
-using StarLine2D.UI.Widgets.Palette;
+using StarLine2D.Libraries.Palette;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,7 +7,7 @@ namespace StarLine2D.UI.Widgets.Icon
     [ExecuteInEditMode]
     public class IconWidget : MonoBehaviour
     {
-        [SerializeField] [Icon] private Sprite icon;
+        [SerializeField] [Libraries.Icon.Icon] private Sprite icon;
         [SerializeField] [Palette] private Color color;
 
         private Image _image;

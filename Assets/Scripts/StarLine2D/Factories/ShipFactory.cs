@@ -4,18 +4,19 @@ using System.Linq;
 using UnityEngine;
 using StarLine2D.Models;
 using StarLine2D.Components;
+using StarLine2D.Libraries.Garage;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
 namespace StarLine2D.Controllers
 {
     // >>>> Новый enum типа корабля <<<<
-    public enum ShipType
-    {
-        Player,
-        Ally,
-        Enemy
-    }
+    // public enum ShipType
+    // {
+    //     Player,
+    //     Ally,
+    //     Enemy
+    // }
 }
 
 namespace StarLine2D.Controllers
@@ -25,7 +26,7 @@ namespace StarLine2D.Controllers
     public class ShipPrefabData
     {
         public GameObject prefab;
-        public ShipType type;
+        public GarageItem.ShipType type;
     }
 }
 
@@ -37,20 +38,17 @@ namespace StarLine2D.Controllers
     /// </summary>
     public class ShipFactory
     {
-        private readonly List<ShipPrefabData> _allShipPrefabs;
-        private readonly int _selectedPlayerIndex;
+        private ShipController _playerPrefab;
         private readonly int _numberOfAllies;
         private readonly int _numberOfEnemies;
 
         public ShipFactory(
-            List<ShipPrefabData> allShipPrefabs,
-            int selectedPlayerIndex,
+            ShipController playerPrefab,
             int numberOfAllies,
             int numberOfEnemies
         )
         {
-            _allShipPrefabs = allShipPrefabs;
-            _selectedPlayerIndex = selectedPlayerIndex;
+            _playerPrefab = playerPrefab;
             _numberOfAllies = numberOfAllies;
             _numberOfEnemies = numberOfEnemies;
         }
@@ -61,11 +59,6 @@ namespace StarLine2D.Controllers
         public List<ShipController> SpawnAllShips(FieldController field)
         {
             var ships = new List<ShipController>();
-
-            // Фильтруем список, чтобы получить отдельные категории
-            var playerPrefabs = _allShipPrefabs.Where(p => p.type == ShipType.Player).ToList();
-            var allyPrefabs   = _allShipPrefabs.Where(p => p.type == ShipType.Ally).ToList();
-            var enemyPrefabs  = _allShipPrefabs.Where(p => p.type == ShipType.Enemy).ToList();
 
             // Общее количество кораблей: 1 игрок + союзники + враги
             int totalShipsCount = 1 + _numberOfAllies + _numberOfEnemies;
@@ -80,25 +73,14 @@ namespace StarLine2D.Controllers
 
             int cellIndex = 0;
 
-            // ----- Спауним игрока -----
-            if (playerPrefabs.Count == 0)
-            {
-                Debug.LogError("В списке allShipPrefabs нет корабля с ShipType.Player!");
-                return ships;
-            }
-
-            // Берём один из Player-префабов по _selectedPlayerIndex
-            int clampedIndex = Mathf.Clamp(_selectedPlayerIndex, 0, playerPrefabs.Count - 1);
-            var playerPrefab = playerPrefabs[clampedIndex].prefab;
-
             var playerCell = randomCells[cellIndex++];
-            var playerShipObj = Object.Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
+            var playerShipObj = Object.Instantiate(_playerPrefab, Vector3.zero, Quaternion.identity);
 
             // Привязываем PlayerController и устанавливаем профиль
             var playerShipController = AddControllerAndProfile(
-                playerShipObj,
+                playerShipObj.gameObject,
                 typeof(PlayerController),
-                ShipType.Player
+                GarageItem.ShipType.Player
             );
 
             // Инициализируем позицию
@@ -117,22 +99,15 @@ namespace StarLine2D.Controllers
             // ----- Спауним союзные корабли -----
             for (int i = 0; i < _numberOfAllies; i++)
             {
-                if (allyPrefabs.Count == 0)
-                {
-                    Debug.LogWarning("В списке allShipPrefabs нет кораблей с ShipType.Ally!");
-                    break;
-                }
-
-                var allyIndex = Random.Range(0, allyPrefabs.Count);
-                var allyPrefabGo = allyPrefabs[allyIndex].prefab;
+                var allyPrefabGo = GarageLibrary.I.GetRandom(GarageItem.ShipType.Ally).Prefab;
 
                 var allyCell = randomCells[cellIndex++];
                 var allyObj = Object.Instantiate(allyPrefabGo, Vector3.zero, Quaternion.identity);
 
                 var allyShipController = AddControllerAndProfile(
-                    allyObj,
+                    allyObj.gameObject,
                     typeof(AllyController),
-                    ShipType.Ally
+                    GarageItem.ShipType.Ally
                 );
 
                 allyShipController.PositionCell = allyCell;
@@ -151,22 +126,15 @@ namespace StarLine2D.Controllers
             // ----- Спауним вражеские корабли -----
             for (int i = 0; i < _numberOfEnemies; i++)
             {
-                if (enemyPrefabs.Count == 0)
-                {
-                    Debug.LogWarning("В списке allShipPrefabs нет кораблей с ShipType.Enemy!");
-                    break;
-                }
-
-                var enemyIndex = Random.Range(0, enemyPrefabs.Count);
-                var enemyPrefabGo = enemyPrefabs[enemyIndex].prefab;
+                var enemyPrefabGo = GarageLibrary.I.GetRandom(GarageItem.ShipType.Enemy).Prefab;
 
                 var enemyCell = randomCells[cellIndex++];
                 var enemyObj = Object.Instantiate(enemyPrefabGo, Vector3.zero, Quaternion.identity);
 
                 var enemyShipController = AddControllerAndProfile(
-                    enemyObj,
+                    enemyObj.gameObject,
                     typeof(EnemyController),
-                    ShipType.Enemy
+                    GarageItem.ShipType.Enemy
                 );
 
                 enemyShipController.PositionCell = enemyCell;
@@ -190,7 +158,7 @@ namespace StarLine2D.Controllers
         /// Создаёт/добавляет нужный контроллер (Player/Ally/Enemy)
         /// и устанавливает профиль в SpriteCompoundComponent.
         /// </summary>
-        private ShipController AddControllerAndProfile(GameObject shipGo, System.Type controllerType, ShipType shipType)
+        private ShipController AddControllerAndProfile(GameObject shipGo, System.Type controllerType, GarageItem.ShipType shipType)
         {
             // Гарантируем наличие ShipController
             var shipController = shipGo.GetComponent<ShipController>();

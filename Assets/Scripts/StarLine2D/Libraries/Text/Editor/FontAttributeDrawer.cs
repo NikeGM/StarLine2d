@@ -1,8 +1,9 @@
+using StarLine2D.UI.Widgets.Text;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
 
-namespace StarLine2D.UI.Widgets.Text.Editor
+namespace StarLine2D.Libraries.Text.Editor
 {
     [CustomPropertyDrawer(typeof(FontAttribute))]
     public class FontAttributeDrawer : PropertyDrawer

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using StarLine2D.Models;
@@ -18,7 +19,7 @@ namespace StarLine2D.Controllers
         HorizontalL   // Две клетки по горизонтали (доп. справа)
     }
 
-    [System.Serializable]
+    [Serializable]
     public class Weapon
     {
         [SerializeField] private int damage;

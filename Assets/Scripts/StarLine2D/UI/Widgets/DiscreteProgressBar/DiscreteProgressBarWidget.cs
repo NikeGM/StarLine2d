@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using StarLine2D.UI.Widgets.Palette;
+using StarLine2D.Libraries.Palette;
 using UnityEngine;
 using UnityEngine.UI;
 

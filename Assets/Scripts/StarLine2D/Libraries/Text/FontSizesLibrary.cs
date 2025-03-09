@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace StarLine2D.UI.Widgets.Text
+namespace StarLine2D.Libraries.Text
 {
     [CreateAssetMenu(menuName = "Custom/FontSizesLibrary", fileName = "FontSizesLibrary")]
     public class FontSizesLibrary : ScriptableObject
