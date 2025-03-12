@@ -136,7 +136,7 @@ MonoBehaviour:
   score:
     value: 0
   moveController: {fileID: 6038296220036402045}
-  moveDistance: 10
+  moveDistance: 2
   maxHealth: 100
   weapons:
   - damage: 100

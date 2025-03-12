@@ -29,7 +29,6 @@ namespace StarLine2D.Controllers
     }
 }
 
-
 namespace StarLine2D.Controllers
 {
     /// <summary>
@@ -70,11 +69,17 @@ namespace StarLine2D.Controllers
             // Общее количество кораблей: 1 игрок + союзники + враги
             int totalShipsCount = 1 + _numberOfAllies + _numberOfEnemies;
 
-            // Получаем случайные свободные клетки (по количеству кораблей)
-            var randomCells = field.GetRandomCells(totalShipsCount);
-            if (randomCells.Count < totalShipsCount)
+            // Получаем случайные свободные клетки (по количеству кораблей),
+            // но ещё и убираем те, где есть препятствие!
+            // Простейший вариант: фильтр по HasObstacle == false
+            var allCells = field.Cells
+                .Where(c => !c.HasObstacle)
+                .OrderBy(_ => Random.value)
+                .ToList();
+
+            if (allCells.Count < totalShipsCount)
             {
-                Debug.LogError("Не хватает свободных клеток, чтобы разместить все корабли!");
+                Debug.LogError("Не хватает свободных клеток (без препятствий), чтобы разместить все корабли!");
                 return ships;
             }
 
@@ -91,22 +96,34 @@ namespace StarLine2D.Controllers
             int clampedIndex = Mathf.Clamp(_selectedPlayerIndex, 0, playerPrefabs.Count - 1);
             var playerPrefab = playerPrefabs[clampedIndex].prefab;
 
-            var playerCell = randomCells[cellIndex++];
-            var playerShipObj = Object.Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
+            // Ищем подходящую клетку для игрока (с учётом ShipShape)
+            CellController playerCell = null;
+            while (cellIndex < allCells.Count)
+            {
+                var tryCell = allCells[cellIndex++];
+                if (CheckShipShapeIsFree(playerPrefab, tryCell, field))
+                {
+                    playerCell = tryCell;
+                    break;
+                }
+            }
+            if (!playerCell)
+            {
+                Debug.LogError("Не нашли подходящую клетку под корабль игрока (препятствия мешают)!");
+                return ships;
+            }
 
-            // Привязываем PlayerController и устанавливаем профиль
+            // Создаём игрока
+            var playerShipObj = Object.Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
             var playerShipController = AddControllerAndProfile(
                 playerShipObj,
                 typeof(PlayerController),
                 ShipType.Player
             );
-
-            // Инициализируем позицию
             playerShipController.PositionCell = playerCell;
+            // Ставим корабль строго по центру формы
             playerShipObj.transform.position = GetCellCenter(playerShipController, field);
             playerShipObj.transform.rotation = Quaternion.Euler(0, 0, 0);
-
-            // Инициализация PlayerController
             var playerCtrl = playerShipObj.GetComponent<PlayerController>();
             if (playerCtrl != null)
             {
@@ -122,19 +139,31 @@ namespace StarLine2D.Controllers
                     Debug.LogWarning("В списке allShipPrefabs нет кораблей с ShipType.Ally!");
                     break;
                 }
-
                 var allyIndex = Random.Range(0, allyPrefabs.Count);
                 var allyPrefabGo = allyPrefabs[allyIndex].prefab;
 
-                var allyCell = randomCells[cellIndex++];
-                var allyObj = Object.Instantiate(allyPrefabGo, Vector3.zero, Quaternion.identity);
+                CellController allyCell = null;
+                while (cellIndex < allCells.Count)
+                {
+                    var tryCell = allCells[cellIndex++];
+                    if (CheckShipShapeIsFree(allyPrefabGo, tryCell, field))
+                    {
+                        allyCell = tryCell;
+                        break;
+                    }
+                }
+                if (!allyCell)
+                {
+                    Debug.LogWarning("Не нашли подходящую клетку для одного из союзных кораблей.");
+                    break;
+                }
 
+                var allyObj = Object.Instantiate(allyPrefabGo, Vector3.zero, Quaternion.identity);
                 var allyShipController = AddControllerAndProfile(
                     allyObj,
                     typeof(AllyController),
                     ShipType.Ally
                 );
-
                 allyShipController.PositionCell = allyCell;
                 allyObj.transform.position = GetCellCenter(allyShipController, field);
                 allyObj.transform.rotation = Quaternion.Euler(0, 0, 0);
@@ -156,19 +185,31 @@ namespace StarLine2D.Controllers
                     Debug.LogWarning("В списке allShipPrefabs нет кораблей с ShipType.Enemy!");
                     break;
                 }
-
                 var enemyIndex = Random.Range(0, enemyPrefabs.Count);
                 var enemyPrefabGo = enemyPrefabs[enemyIndex].prefab;
 
-                var enemyCell = randomCells[cellIndex++];
-                var enemyObj = Object.Instantiate(enemyPrefabGo, Vector3.zero, Quaternion.identity);
+                CellController enemyCell = null;
+                while (cellIndex < allCells.Count)
+                {
+                    var tryCell = allCells[cellIndex++];
+                    if (CheckShipShapeIsFree(enemyPrefabGo, tryCell, field))
+                    {
+                        enemyCell = tryCell;
+                        break;
+                    }
+                }
+                if (!enemyCell)
+                {
+                    Debug.LogWarning("Не нашли подходящую клетку для одного из врагов.");
+                    break;
+                }
 
+                var enemyObj = Object.Instantiate(enemyPrefabGo, Vector3.zero, Quaternion.identity);
                 var enemyShipController = AddControllerAndProfile(
                     enemyObj,
                     typeof(EnemyController),
                     ShipType.Enemy
                 );
-
                 enemyShipController.PositionCell = enemyCell;
                 enemyObj.transform.position = GetCellCenter(enemyShipController, field);
                 // Враг изначально «смотрит вниз»
@@ -187,10 +228,53 @@ namespace StarLine2D.Controllers
         }
 
         /// <summary>
+        /// Проверяем, что форма корабля (одно- или двухклетный) не накладывается на препятствия.
+        /// </summary>
+        private bool CheckShipShapeIsFree(GameObject shipPrefab, CellController mainCell, FieldController field)
+        {
+            // Временный ShipController, чтобы узнать его ShipShape
+            var tempShip = shipPrefab.GetComponent<ShipController>();
+            if (!tempShip) return false;
+
+            // Для Single просто проверим HasObstacle в mainCell
+            if (tempShip.ShipShape == ShipShape.Single)
+            {
+                return !mainCell.HasObstacle;
+            }
+
+            // Для двухклетных форм вычислим вторую клетку и проверим тоже
+            // В коде ShipController есть логика:
+            // - HorizontalR => (q-1, r, s+1)
+            // - HorizontalL => (q+1, r, s-1)
+            var q = mainCell.Q;
+            var r = mainCell.R;
+            var s = mainCell.S;
+
+            CellController secondCell = null;
+
+            if (tempShip.ShipShape == ShipShape.HorizontalR)
+            {
+                secondCell = field.FindCellByModel(new CubeCellModel(q - 1, r, s + 1));
+            }
+            else if (tempShip.ShipShape == ShipShape.HorizontalL)
+            {
+                secondCell = field.FindCellByModel(new CubeCellModel(q + 1, r, s - 1));
+            }
+
+            if (!secondCell) return false; // второй клетки нет, значит не подходит
+
+            // И уже проверяем, что нет препятствий
+            if (mainCell.HasObstacle || secondCell.HasObstacle)
+                return false;
+
+            return true;
+        }
+
+        /// <summary>
         /// Создаёт/добавляет нужный контроллер (Player/Ally/Enemy)
         /// и устанавливает профиль в SpriteCompoundComponent.
         /// </summary>
-        private ShipController AddControllerAndProfile(GameObject shipGo, System.Type controllerType, ShipType shipType)
+        private ShipController AddControllerAndProfile(GameObject shipGo, Type controllerType, ShipType shipType)
         {
             // Гарантируем наличие ShipController
             var shipController = shipGo.GetComponent<ShipController>();
@@ -211,7 +295,6 @@ namespace StarLine2D.Controllers
             if (spriteCompound != null)
             {
                 // Превращаем enum-значение в строку, совпадающую с Id в инспекторе
-                // Напр. ShipType.Ally -> "ally"
                 var profileId = shipType.ToString().ToLower();
 
                 // Пробуем установить профиль
@@ -229,28 +312,33 @@ namespace StarLine2D.Controllers
         }
 
         /// <summary>
-        /// Определяем позицию в мире, исходя из ячейки.
+        /// Определяем позицию в мире, исходя из ВСЕХ клеток, которые занимает корабль.
         /// </summary>
         private Vector3 GetCellCenter(ShipController ship, FieldController field)
         {
             if (ship.PositionCell == null)
                 return Vector3.zero;
 
-            // Переводим Q,R,S -> модель
-            var model = new CubeCellModel(
-                ship.PositionCell.Q,
-                ship.PositionCell.R,
-                ship.PositionCell.S
-            );
+            var shipCells = ship.ShipCellModels;
+            if (shipCells.Count == 0)
+                return Vector3.zero;
 
-            // Ищем CellController
-            var cell = field.FindCellByModel(model);
-            if (cell != null)
+            Vector3 sum = Vector3.zero;
+            int count = 0;
+            foreach (var model in shipCells)
             {
-                return cell.transform.position;
+                var cell = field.FindCellByModel(model);
+                if (cell != null)
+                {
+                    sum += cell.transform.position;
+                    count++;
+                }
             }
 
-            return Vector3.zero;
+            if (count == 0)
+                return Vector3.zero;
+
+            return sum / count;
         }
     }
 }

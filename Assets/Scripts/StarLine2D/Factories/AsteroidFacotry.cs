@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using StarLine2D.Models;
+using Random = UnityEngine.Random;
 
 namespace StarLine2D.Controllers
 {
@@ -50,9 +51,9 @@ namespace StarLine2D.Controllers
                 return asteroids;
             }
 
-            // Список ячеек, где нет кораблей
+            // Список ячеек, где нет препятствий И там нет кораблей
             var freeCells = field.Cells
-                .Where(cell => ships.All(s => s.PositionCell != cell))
+                .Where(cell => !cell.HasObstacle && !IsCellOccupiedByAnyShip(cell, ships))
                 .OrderBy(_ => Random.value)
                 .ToList();
 
@@ -63,7 +64,11 @@ namespace StarLine2D.Controllers
             for (int i = 0; i < spawnCount; i++)
             {
                 var startCell = freeCells[i];
-                var asteroidGo = Object.Instantiate(_bigAsteroidPrefab, startCell.transform.position, Quaternion.identity);
+                var asteroidGo = Object.Instantiate(
+                    _bigAsteroidPrefab, 
+                    startCell.transform.position, 
+                    Quaternion.identity
+                );
                 var asteroidCtrl = asteroidGo.GetComponent<AsteroidController>();
                 if (!asteroidCtrl)
                 {
@@ -71,6 +76,7 @@ namespace StarLine2D.Controllers
                     continue;
                 }
 
+                // Генерируем случайные параметры
                 var randomSize = AsteroidSize.Big;
                 var randomHp = Random.Range(_minAsteroidHp, _maxAsteroidHp + 1);
                 var randomMass = Random.Range(_minAsteroidMass, _maxAsteroidMass);
@@ -100,30 +106,44 @@ namespace StarLine2D.Controllers
             List<ShipController> ships
         )
         {
-            if (!_smallAsteroidPrefab || !bigAsteroid) return;
-            if (bigAsteroid.Size != AsteroidSize.Big) return;
+            if (_smallAsteroidPrefab == null || bigAsteroid == null) 
+                return;
+            if (bigAsteroid.Size != AsteroidSize.Big) 
+                return;
 
             var neighbors = field.GetNeighbors(bigAsteroid.PositionCell, 1);
+            // Фильтруем, чтобы там не было препятствия, других астероидов и кораблей
             neighbors = neighbors.Where(cell =>
+                !cell.HasObstacle &&
                 !allAsteroids.Any(a => a && a.PositionCell == cell) &&
-                ships.All(s => s.PositionCell != cell)).ToList();
+                !IsCellOccupiedByAnyShip(cell, ships)
+            ).ToList();
 
             int spawnCount = Random.Range(1, 7);
             if (spawnCount > neighbors.Count)
                 spawnCount = neighbors.Count;
-            if (spawnCount <= 0) return;
+            if (spawnCount <= 0) 
+                return;
 
-            var randomNeighbors = neighbors.OrderBy(_ => Random.value).Take(spawnCount).ToList();
+            var randomNeighbors = neighbors
+                .OrderBy(_ => Random.value)
+                .Take(spawnCount)
+                .ToList();
 
             foreach (var cell in randomNeighbors)
             {
+                // Направление = вектор (newCell - oldCell)
                 var direction = new CubeCellModel(
                     cell.Q - bigAsteroid.PositionCell.Q,
                     cell.R - bigAsteroid.PositionCell.R,
                     cell.S - bigAsteroid.PositionCell.S
                 );
 
-                var smallGo = Object.Instantiate(_smallAsteroidPrefab, cell.transform.position, Quaternion.identity);
+                var smallGo = Object.Instantiate(
+                    _smallAsteroidPrefab,
+                    cell.transform.position,
+                    Quaternion.identity
+                );
                 var smallCtrl = smallGo.GetComponent<AsteroidController>();
 
                 // Расчёт HP и массы «осколка»
@@ -160,6 +180,24 @@ namespace StarLine2D.Controllers
 
             int index = Random.Range(0, possibleDirections.Count);
             return possibleDirections[index];
+        }
+
+        /// <summary>
+        /// Проверяет, занята ли клетка `cell` кем-либо из кораблей (Q,R,S).
+        /// </summary>
+        private bool IsCellOccupiedByAnyShip(CellController cell, List<ShipController> ships)
+        {
+            foreach (var ship in ships)
+            {
+                if (ship == null) continue;
+                // Перебираем все клеточные модели этого корабля
+                foreach (var model in ship.ShipCellModels)
+                {
+                    if (model.Q == cell.Q && model.R == cell.R && model.S == cell.S)
+                        return true;
+                }
+            }
+            return false;
         }
     }
 }

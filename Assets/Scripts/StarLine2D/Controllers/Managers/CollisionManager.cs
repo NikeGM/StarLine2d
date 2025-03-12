@@ -1,12 +1,9 @@
-using UnityEngine;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 
 namespace StarLine2D.Controllers
 {
-    /// <summary>
-    /// Менеджер, отвечающий за коллизии (корабль-корабль) и т.п.
-    /// </summary>
     public class CollisionManager : MonoBehaviour
     {
         private GameController _gc;
@@ -47,7 +44,7 @@ namespace StarLine2D.Controllers
         }
 
         /// <summary>
-        /// Удаляем «мертвые» астероиды из списка, если нужно
+        /// Удаляем «мертвые» (уничтоженные) астероиды из списка
         /// </summary>
         public void CleanupAsteroids()
         {
@@ -56,9 +53,26 @@ namespace StarLine2D.Controllers
 
             for (int i = asteroids.Count - 1; i >= 0; i--)
             {
-                if (!asteroids[i])
+                if (!asteroids[i]) // == null или missing
                 {
                     asteroids.RemoveAt(i);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Аналогично удаляем уничтоженные корабли из списка _gc.Ships
+        /// </summary>
+        public void CleanupShips()
+        {
+            if (_gc == null) return;
+            var ships = _gc.Ships;
+
+            for (int i = ships.Count - 1; i >= 0; i--)
+            {
+                if (!ships[i]) // == null или missing
+                {
+                    ships.RemoveAt(i);
                 }
             }
         }

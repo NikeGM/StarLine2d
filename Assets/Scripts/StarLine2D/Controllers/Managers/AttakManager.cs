@@ -8,8 +8,6 @@ namespace StarLine2D.Controllers
 {
     /// <summary>
     /// Менеджер атак и обработки нажатий Attack/Position.
-    /// Добавлены публичные методы GetShapeCells_Public, GetShipCells_Public,
-    /// чтобы их мог вызвать GameController (в "обёртках").
     /// </summary>
     public class AttackManager : MonoBehaviour
     {
@@ -26,6 +24,9 @@ namespace StarLine2D.Controllers
             }
         }
 
+        /// <summary>
+        /// Кнопка "Position" - включаем зону перемещения
+        /// </summary>
         public void OnPositionClicked()
         {
             if (_gameController == null) return;
@@ -37,9 +38,11 @@ namespace StarLine2D.Controllers
                 return;
             }
 
+            // Сбрасываем данные о выстрелах и движении
             player.FlushShoots();
             player.MoveCell = null;
 
+            // Очищаем статические клетки и задаём зону перемещения
             _cellsStateController.ClearStaticCells();
             _cellsStateController.SetZone(
                 player.PositionCell,
@@ -49,6 +52,9 @@ namespace StarLine2D.Controllers
             );
         }
 
+        /// <summary>
+        /// Кнопка "Attack" - включаем зону атаки для оружия (index).
+        /// </summary>
         public void OnAttackClicked(int index)
         {
             if (_gameController == null) return;
@@ -59,12 +65,14 @@ namespace StarLine2D.Controllers
                 return;
             }
 
+            // Проверяем, выбрано ли место перемещения
             if (!player.MoveCell)
             {
                 Debug.Log("Сначала выберите, куда перемещается корабль!");
                 return;
             }
 
+            // Формируем список клеток, которые займет корабль в новой позиции
             var shapeCells = GetShapeCells(shape: player.ShipShape, headCell: player.MoveCell);
             if (shapeCells.Count == 0)
             {
@@ -72,6 +80,7 @@ namespace StarLine2D.Controllers
                 return;
             }
 
+            // Берём оружие игрока и создаём зону стрельбы
             var weapon = player.Weapons[index];
             _cellsStateController.SetWeaponZoneForFuturePosition(
                 shapeCells,
@@ -82,6 +91,10 @@ namespace StarLine2D.Controllers
             _currentWeapon = index;
         }
 
+        /// <summary>
+        /// Обработка клика по клетке (когда активна какая-либо зона).
+        /// Вызывается при OnMouseDown у клетки или другими способами.
+        /// </summary>
         public void OnCellClicked(GameObject go)
         {
             if (_gameController == null || _cellsStateController == null) return;
@@ -91,12 +104,13 @@ namespace StarLine2D.Controllers
             var zone = _cellsStateController.Zone;
             if (zone is null) return;
 
-            // Зона перемещения
+            // --- ЗОНА ПЕРЕМЕЩЕНИЯ ---
             if (zone.Type == CellsStateController.MoveZone)
             {
                 var player = _gameController.GetPlayerShip();
                 if (player == null) return;
 
+                // Получаем клетки, которые займёт корабль при голове в cell
                 var shapeCells = GetShapeCells(player.ShipShape, cell);
                 if (shapeCells.Count == 0)
                 {
@@ -104,6 +118,23 @@ namespace StarLine2D.Controllers
                     return;
                 }
 
+                // 1) Проверка: все ли клетки формы входят в зону
+                // (Если зона хранится в _cellsStateController.ZoneCells)
+                bool allCellsInZone = shapeCells.All(sc => _cellsStateController.ZoneCells.Contains(sc));
+                if (!allCellsInZone)
+                {
+                    Debug.Log("Слишком далеко! Не все клетки формы корабля попадают в зону перемещения.");
+                    return;
+                }
+
+                // 2) Проверка: нет ли препятствий
+                if (shapeCells.Any(sc => sc.HasObstacle))
+                {
+                    Debug.Log("Невозможно сходить: часть клеток занята препятствием!");
+                    return;
+                }
+
+                // 3) Если всё в порядке — добавляем статические клетки и выставляем MoveCell
                 for (int i = 0; i < shapeCells.Count; i++)
                 {
                     _cellsStateController.AddStaticCell($"Move_{i}", shapeCells[i], CellsStateController.MoveActiveProfile);
@@ -114,9 +145,10 @@ namespace StarLine2D.Controllers
                 return;
             }
 
-            // Зона атаки
+            // --- ЗОНА АТАКИ ---
             if (_currentWeapon != -1 && zone.Type == CellsStateController.WeaponZone)
             {
+                // При клике добавляем "активную" ячейку оружия
                 _cellsStateController.AddStaticCell(
                     _currentWeapon.ToString(),
                     cell,
@@ -132,7 +164,7 @@ namespace StarLine2D.Controllers
         }
 
         /// <summary>
-        /// Выстрел кораблём (старая логика из GameController).
+        /// Логика выстрела (раньше была в GameController).
         /// </summary>
         public void Shot(ShipController ship)
         {
@@ -153,20 +185,21 @@ namespace StarLine2D.Controllers
                 CellController closestCell = null;
                 int minDistance = int.MaxValue;
 
-                foreach (var cell in shipCells)
+                // Ищем ближайшую из клеток корабля к точке выстрела
+                foreach (var c in shipCells)
                 {
-                    int dist = field.GetDistance(cell, shipWeapon.ShootCell);
+                    int dist = field.GetDistance(c, shipWeapon.ShootCell);
                     if (dist < minDistance)
                     {
                         minDistance = dist;
-                        closestCell = cell;
+                        closestCell = c;
                     }
                 }
 
                 if (closestCell == null) continue;
                 if (minDistance > shipWeapon.Range) continue;
 
-                // Набор клеток, по которым летит выстрел
+                // Собираем клетки, по которым "пройдёт" выстрел
                 var shootCells = new HashSet<CellController>();
                 if (shipWeapon.Type == WeaponType.Point)
                 {
@@ -179,21 +212,23 @@ namespace StarLine2D.Controllers
                     {
                         cellsOnLine.RemoveAt(0);
                     }
-                    foreach (var c in cellsOnLine)
-                        shootCells.Add(c);
+                    foreach (var lineCell in cellsOnLine)
+                    {
+                        shootCells.Add(lineCell);
+                    }
                 }
 
-                // Анимация выстрела
-                foreach (var c in shootCells)
+                // Игровая анимация выстрела
+                foreach (var cellShot in shootCells)
                 {
-                    c.ShotAnimation();
+                    cellShot.ShotAnimation();
                 }
 
-                // Урон
+                // Применяем урон
                 var damagedShips = new HashSet<ShipController>();
-                foreach (var cell in shootCells)
+                foreach (var cellShot in shootCells)
                 {
-                    var damagedShip = ships.Find(s => s.PositionCell == cell);
+                    var damagedShip = ships.Find(s => s.PositionCell == cellShot);
                     if (damagedShip != null)
                     {
                         if (!damagedShips.Contains(damagedShip))
@@ -201,6 +236,7 @@ namespace StarLine2D.Controllers
                             var resultedDamage = damagedShip.OnDamage(shipWeapon.Damage);
                             if (damagedShip == ship)
                             {
+                                // Самострел
                                 ship.AddScore(-resultedDamage);
                             }
                             else
@@ -212,7 +248,8 @@ namespace StarLine2D.Controllers
                     }
                     else
                     {
-                        var asteroid = asteroids.FirstOrDefault(a => a.PositionCell == cell);
+                        // Возможно, попали в астероид
+                        var asteroid = asteroids.FirstOrDefault(a => a.PositionCell == cellShot);
                         if (asteroid != null)
                         {
                             var damageDone = asteroid.OnDamage(shipWeapon.Damage);
@@ -224,13 +261,13 @@ namespace StarLine2D.Controllers
                     }
                 }
 
-                // Сброс ShootCell
+                // Сброс ShootCell после выстрела
                 shipWeapon.ShootCell = null;
             }
         }
 
         // --------------------------------------------------------------------------------
-        // ВНУТРЕННИЕ методы для расчёта формы корабля, занятых клеток и т.д. (как раньше).
+        // ВНУТРЕННИЕ методы для расчёта формы корабля и занятых клеток.
         // --------------------------------------------------------------------------------
         private List<CellController> GetShapeCells(ShipShape shape, CellController headCell)
         {
@@ -245,11 +282,12 @@ namespace StarLine2D.Controllers
             switch (shape)
             {
                 case ShipShape.Single:
-                    // Одноклеточный
+                    // Одноклеточный - ничего не добавляем
                     break;
 
                 case ShipShape.HorizontalR:
                 {
+                    // Вправо: (Q-1,R,S+1)
                     var modelLeft = new CubeCellModel(headCell.Q - 1, headCell.R, headCell.S + 1);
                     var leftCell = field.FindCellByModel(modelLeft);
                     if (leftCell == null)
@@ -259,6 +297,7 @@ namespace StarLine2D.Controllers
                 }
                 case ShipShape.HorizontalL:
                 {
+                    // Влево: (Q+1,R,S-1)
                     var modelRight = new CubeCellModel(headCell.Q + 1, headCell.R, headCell.S - 1);
                     var rightCell = field.FindCellByModel(modelRight);
                     if (rightCell == null)
@@ -291,9 +330,7 @@ namespace StarLine2D.Controllers
         }
 
         // --------------------------------------------------------------------------------
-        // ПУБЛИЧНЫЕ методы для "обёртки" в GameController.
-        // CellStateController вызывает gameController.GetShapeCells(...), 
-        // а там внутри - эти методы, чтобы остальной код не ломался.
+        // ПУБЛИЧНЫЕ методы для "обёртки" в GameController (если нужно).
         // --------------------------------------------------------------------------------
         public List<CellController> GetShapeCells_Public(ShipShape shape, CellController headCell)
         {

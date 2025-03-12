@@ -77,7 +77,8 @@ namespace StarLine2D.Controllers
         }
 
         /// <summary>
-        /// Ищем клетку для перемещения: к примеру, выбираем любую соседнюю клетку (радиус 1).
+        /// Ищем клетку для перемещения: к примеру, выбираем любую соседнюю клетку (радиус 1),
+        /// но без препятствий.
         /// </summary>
         private CellController GetMoveCell()
         {
@@ -90,7 +91,17 @@ namespace StarLine2D.Controllers
             if (neighbors.Count == 0)
                 return ship.PositionCell;
 
-            // Случайно выбираем одну из соседних клеток (можно усложнить логику)
+            // ФИЛЬТРУЕМ препятствия
+            neighbors = neighbors
+                .Where(n => !n.HasObstacle) 
+                .ToList();
+
+            if (neighbors.Count == 0)
+            {
+                // Нет доступных соседних клеток, остаёмся на месте
+                return ship.PositionCell;
+            }
+
             var randomIndex = Random.Range(0, neighbors.Count);
             return neighbors[randomIndex];
         }
