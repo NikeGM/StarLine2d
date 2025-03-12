@@ -5,21 +5,22 @@ using UnityEngine.Events;
 
 namespace StarLine2D.UI.Widgets
 {
-    [RequireComponent(typeof(TextMeshProUGUI))]
+    [RequireComponent(typeof(Text.TextWidget))]
     public class CountdownWidget : MonoBehaviour
     {
         [SerializeField] private int value = 100;
         [SerializeField] private float speed = 1f;
+        [SerializeField] private bool showMinutes = false;
         [SerializeField] private UnityEvent onDone;
 
-        private TextMeshProUGUI _text;
+        private Text.TextWidget _text;
         private bool _started = false;
         private int _currentValue;
         private float _lastTime = 0;
 
         private void Awake()
         {
-            _text = GetComponent<TextMeshProUGUI>();
+            _text = GetComponent<Text.TextWidget>();
             Flush();
         }
 
@@ -42,7 +43,9 @@ namespace StarLine2D.UI.Widgets
             }
 
             if (_currentValue < 0) _currentValue = 0;
-            _text.text = $"{_currentValue}";
+            _text.SetText(!showMinutes
+                ? _currentValue.ToString()
+                : $"{Math.Floor(_currentValue / 60f)}:{_currentValue % 60}");
 
             if (_currentValue != 0) return;
             onDone?.Invoke();
@@ -61,7 +64,7 @@ namespace StarLine2D.UI.Widgets
             _currentValue = value;
             _lastTime = 0;
             _started = false;
-            _text.text = "";
+            _text.SetText("");
         }
     }
 }
