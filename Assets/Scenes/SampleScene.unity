@@ -8573,6 +8573,10 @@ GameObject:
   m_Component:
   - component: {fileID: 623035309}
   - component: {fileID: 623035310}
+  - component: {fileID: 623035314}
+  - component: {fileID: 623035313}
+  - component: {fileID: 623035312}
+  - component: {fileID: 623035311}
   m_Layer: 0
   m_Name: Game
   m_TagString: Untagged
@@ -8622,6 +8626,55 @@ MonoBehaviour:
   maxAsteroidMass: 3
   obstaclePrefabs: []
   numberOfObstacles: 3
+--- !u!114 &623035311
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 623035308}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bae6e6e6219f84c50810a50e7943e62b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &623035312
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 623035308}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d714d6b7b11d64ef08f822cf2bad1215, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  defaultMoveDuration: 2
+--- !u!114 &623035313
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 623035308}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff471899f199c474e8361539929b9196, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &623035314
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 623035308}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ff2d0a0d1a624f809a66ed97896433e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &624429960
 PrefabInstance:
   m_ObjectHideFlags: 0
