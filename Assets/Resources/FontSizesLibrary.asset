@@ -21,3 +21,7 @@ MonoBehaviour:
     size: 20
   - sizeName: medium+
     size: 25
+  - sizeName: x-large
+    size: 52
+  - sizeName: large+
+    size: 43

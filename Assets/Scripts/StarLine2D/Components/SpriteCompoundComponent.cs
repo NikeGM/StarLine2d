@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using StarLine2D.UI.Widgets.Palette;
+using StarLine2D.Libraries.Palette;
 using UnityEngine;
 
 namespace StarLine2D.Components

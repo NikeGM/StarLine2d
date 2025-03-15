@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using StarLine2D.Components;
+using StarLine2D.Libraries.Garage;
 using StarLine2D.Utils.Disposable;
 using StarLine2D.Models;
 
@@ -16,8 +17,7 @@ namespace StarLine2D.Controllers
     {
         [Header("Ссылки на поле и префабы (корабли)")]
         [SerializeField] private FieldController field;
-        [SerializeField] private List<ShipPrefabData> allShipPrefabs;
-        [SerializeField] private int selectedPlayerIndex = 0;
+        [SerializeField] [Garage(GarageItem.ShipType.Player)] private ShipController playerShip;
         [SerializeField] private int numberOfEnemies = 3;
         [SerializeField] private int numberOfAllies = 2;
 
@@ -67,8 +67,7 @@ namespace StarLine2D.Controllers
 
             // Создаём фабрики
             _shipFactory = new ShipFactory(
-                allShipPrefabs,
-                selectedPlayerIndex,
+                playerShip,
                 numberOfAllies,
                 numberOfEnemies
             );

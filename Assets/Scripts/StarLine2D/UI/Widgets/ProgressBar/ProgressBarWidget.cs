@@ -1,5 +1,5 @@
 using System;
-using StarLine2D.UI.Widgets.Palette;
+using StarLine2D.Libraries.Palette;
 using StarLine2D.Utils.Disposable;
 using StarLine2D.Utils.Observables;
 using TMPro;

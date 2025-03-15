@@ -48,7 +48,7 @@ namespace StarLine2D.UI.Widgets.Editor
                 false
             );
 
-            weaponOptionPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/UI/WeaponSelect/WeaponOption.prefab");
+            weaponOptionPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/UI/WeaponSelect/OptionWidget.prefab");
             weaponOptionPrefab = (GameObject)EditorGUILayout.ObjectField(
                 "Weapon Prefab", 
                 weaponOptionPrefab, 

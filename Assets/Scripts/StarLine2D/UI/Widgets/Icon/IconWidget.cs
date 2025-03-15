@@ -1,4 +1,5 @@
-using StarLine2D.UI.Widgets.Palette;
+using System.Collections.Generic;
+using StarLine2D.Libraries.Palette;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,15 +8,15 @@ namespace StarLine2D.UI.Widgets.Icon
     [ExecuteInEditMode]
     public class IconWidget : MonoBehaviour
     {
-        [SerializeField] [Icon] private Sprite icon;
+        [SerializeField] [Libraries.Icon.Icon] private Sprite icon;
         [SerializeField] [Palette] private Color color;
 
-        private Image _image;
+        private readonly List<Image> _images = new();
         private bool _needUpdate = true;
 
         private void Awake()
         {
-            _image = GetComponentInChildren<Image>();
+            _images.AddRange(GetComponentsInChildren<Image>(true));
         }
 
         private void Update()
@@ -23,15 +24,19 @@ namespace StarLine2D.UI.Widgets.Icon
             if (!_needUpdate) return;
             _needUpdate = false;
             
-            if (_image == null) return;
+            if (_images.Count <= 0) return;
 
-            _image.sprite = icon;
-            _image.color = color;
+            foreach (var item in _images)
+            {
+                item.sprite = icon;
+                item.color = color;
+            }
         }
 
         private void OnValidate()
         {
-            _image = GetComponentInChildren<Image>();
+            _images.Clear();
+            _images.AddRange(GetComponentsInChildren<Image>(true));
             _needUpdate = true;
         }
     }

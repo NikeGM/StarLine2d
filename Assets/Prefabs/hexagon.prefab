@@ -74,7 +74,7 @@ SpriteRenderer:
   m_SortingLayer: 2
   m_SortingOrder: 0
   m_Sprite: {fileID: 21300000, guid: b8631012a71e44cb882b0476f333ba53, type: 3}
-  m_Color: {r: 0.5411765, g: 0.7529412, b: 1, a: 0.12941177}
+  m_Color: {r: 0.11372549, g: 0.13725491, b: 0.1764706, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -237,8 +237,8 @@ MonoBehaviour:
   profiles:
   - id: default
     colors:
-    - color: {r: 0.5411765, g: 0.7529412, b: 1, a: 0.12941177}
-    - color: {r: 0.5411765, g: 0.7529412, b: 1, a: 0.12941177}
+    - color: {r: 0.11372549, g: 0.13725491, b: 0.1764706, a: 1}
+    - color: {r: 0.11372549, g: 0.13725491, b: 0.1764706, a: 1}
   - id: zone
     colors:
     - color: {r: 0.5411765, g: 0.7529412, b: 1, a: 0.25882354}
@@ -337,7 +337,7 @@ SpriteRenderer:
   m_SortingLayer: 2
   m_SortingOrder: 0
   m_Sprite: {fileID: 21300000, guid: f49cebdfab68b436e818b68432a81968, type: 3}
-  m_Color: {r: 0.5411765, g: 0.7529412, b: 1, a: 0.12941177}
+  m_Color: {r: 0.11372549, g: 0.13725491, b: 0.1764706, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0

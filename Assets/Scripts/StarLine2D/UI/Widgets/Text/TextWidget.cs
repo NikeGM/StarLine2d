@@ -1,5 +1,7 @@
 using System;
-using StarLine2D.UI.Widgets.Palette;
+using System.Collections.Generic;
+using StarLine2D.Libraries.Palette;
+using StarLine2D.Libraries.Text;
 using TMPro;
 using UnityEngine;
 
@@ -13,12 +15,12 @@ namespace StarLine2D.UI.Widgets.Text
         [SerializeField] [Palette] private Color color;
         [SerializeField] private string text;
 
-        private TextMeshProUGUI _tmp;
+        private readonly List<TextMeshProUGUI> _textMeshPros = new();
         private bool _needUpdate = true;
 
         private void Awake()
         {
-            _tmp = GetComponentInChildren<TextMeshProUGUI>();
+            _textMeshPros.AddRange(GetComponentsInChildren<TextMeshProUGUI>(true));
         }
 
         private void Update()
@@ -26,17 +28,21 @@ namespace StarLine2D.UI.Widgets.Text
             if (!_needUpdate) return;
             _needUpdate = false;
 
-            if (_tmp is null) return;
+            if (_textMeshPros.Count <= 0) return;
 
-            _tmp.text = text;
-            _tmp.font = font;
-            _tmp.fontSize = size;
-            _tmp.color = color;
+            foreach (var item in _textMeshPros)
+            {
+                item.text = text;
+                item.font = font;
+                item.fontSize = size;
+                item.color = color;
+            }
         }
 
         private void OnValidate()
         {
-            _tmp = GetComponentInChildren<TextMeshProUGUI>();
+            _textMeshPros.Clear();
+            _textMeshPros.AddRange(GetComponentsInChildren<TextMeshProUGUI>(true));
             _needUpdate = true;
         }
 

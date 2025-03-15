@@ -4,6 +4,7 @@ using StarLine2D.Controllers;
 using StarLine2D.UI.Widgets;
 using StarLine2D.UI.Widgets.ProgressBar;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace StarLine2D.UI
 {
@@ -16,6 +17,7 @@ namespace StarLine2D.UI
         [SerializeField] private TextWidget enemyScore;
 
         [SerializeField] private CountdownWidget turnCountdown;
+        [SerializeField] private UnityEvent onTurnStarted;
 
         [SerializeField] private GameObject uiBlocker;
 
@@ -108,6 +110,7 @@ namespace StarLine2D.UI
             }
 
             EnableUI();
+            onTurnStarted?.Invoke();
             if (turnCountdown) turnCountdown.StartCountdown();
             _turnCoroutine = null;
         }
