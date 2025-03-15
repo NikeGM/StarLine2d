@@ -36,7 +36,7 @@ MonoBehaviour:
   - colorName: blue-hex
     color: {r: 0.5411765, g: 0.7529412, b: 1, a: 1}
   - colorName: blue-hex-8
-    color: {r: 0.5411765, g: 0.7529412, b: 1, a: 0.12941177}
+    color: {r: 0.11372549, g: 0.13725491, b: 0.1764706, a: 1}
   - colorName: blue-hex-40
     color: {r: 0.5411765, g: 0.7529412, b: 1, a: 0.25882354}
   - colorName: red-hex
