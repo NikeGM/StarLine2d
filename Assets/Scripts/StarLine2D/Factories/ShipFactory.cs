@@ -52,17 +52,23 @@ namespace StarLine2D.Controllers
             // Общее количество кораблей: 1 игрок + союзники + враги
             int totalShipsCount = 1 + _numberOfAllies + _numberOfEnemies;
 
-            // Получаем случайные свободные клетки (по количеству кораблей)
-            var randomCells = field.GetRandomCells(totalShipsCount);
-            if (randomCells.Count < totalShipsCount)
+            // Получаем случайные свободные клетки (по количеству кораблей),
+            // но ещё и убираем те, где есть препятствие!
+            // Простейший вариант: фильтр по HasObstacle == false
+            var allCells = field.Cells
+                .Where(c => !c.HasObstacle)
+                .OrderBy(_ => Random.value)
+                .ToList();
+
+            if (allCells.Count < totalShipsCount)
             {
-                Debug.LogError("Не хватает свободных клеток, чтобы разместить все корабли!");
+                Debug.LogError("Не хватает свободных клеток (без препятствий), чтобы разместить все корабли!");
                 return ships;
             }
 
             int cellIndex = 0;
 
-            var playerCell = randomCells[cellIndex++];
+            var playerCell = allCells[cellIndex++];
             var playerShipObj = Object.Instantiate(_playerPrefab, Vector3.zero, Quaternion.identity);
 
             // Привязываем PlayerController и устанавливаем профиль
@@ -90,7 +96,7 @@ namespace StarLine2D.Controllers
             {
                 var allyPrefabGo = GarageLibrary.I.GetRandom(GarageItem.ShipType.Ally).Prefab;
 
-                var allyCell = randomCells[cellIndex++];
+                var allyCell = allCells[cellIndex++];
                 var allyObj = Object.Instantiate(allyPrefabGo, Vector3.zero, Quaternion.identity);
 
                 var allyShipController = AddControllerAndProfile(
@@ -117,7 +123,7 @@ namespace StarLine2D.Controllers
             {
                 var enemyPrefabGo = GarageLibrary.I.GetRandom(GarageItem.ShipType.Enemy).Prefab;
 
-                var enemyCell = randomCells[cellIndex++];
+                var enemyCell = allCells[cellIndex++];
                 var enemyObj = Object.Instantiate(enemyPrefabGo, Vector3.zero, Quaternion.identity);
 
                 var enemyShipController = AddControllerAndProfile(
@@ -193,21 +199,26 @@ namespace StarLine2D.Controllers
             if (ship.PositionCell == null)
                 return Vector3.zero;
 
-            // Переводим Q,R,S -> модель
-            var model = new CubeCellModel(
-                ship.PositionCell.Q,
-                ship.PositionCell.R,
-                ship.PositionCell.S
-            );
+            var shipCells = ship.ShipCellModels;
+            if (shipCells.Count == 0)
+                return Vector3.zero;
 
-            // Ищем CellController
-            var cell = field.FindCellByModel(model);
-            if (cell != null)
+            Vector3 sum = Vector3.zero;
+            int count = 0;
+            foreach (var model in shipCells)
             {
-                return cell.transform.position;
+                var cell = field.FindCellByModel(model);
+                if (cell != null)
+                {
+                    sum += cell.transform.position;
+                    count++;
+                }
             }
 
-            return Vector3.zero;
+            if (count == 0)
+                return Vector3.zero;
+
+            return sum / count;
         }
     }
 }

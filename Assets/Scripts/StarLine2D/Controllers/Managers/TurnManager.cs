@@ -5,13 +5,14 @@ using UnityEngine;
 namespace StarLine2D.Controllers
 {
     /// <summary>
-    /// Менеджер «конца хода» (TurnFinished) — осуществляет общий сценарий:
+    /// Менеджер «конца хода» (TurnFinished) — общий сценарий:
     /// 1) Ход врагов
     /// 2) Ход союзников
     /// 3) Движение
     /// 4) Атака
     /// 5) Коллизии
-    /// 6) Очистка астероидов
+    /// 6) Очистка астероидов (и кораблей)
+    /// 7) Очистка подсветки
     /// </summary>
     public class TurnManager : MonoBehaviour
     {
@@ -25,9 +26,9 @@ namespace StarLine2D.Controllers
             _gc = gameController;
 
             // Допустим, найдём «соседние» менеджеры тут же (или вручную назначим).
-            _movement = FindObjectOfType<MovementManager>();
-            _attack = FindObjectOfType<AttackManager>();
-            _collision = FindObjectOfType<CollisionManager>();
+            _movement   = FindObjectOfType<MovementManager>();
+            _attack     = FindObjectOfType<AttackManager>();
+            _collision  = FindObjectOfType<CollisionManager>();
         }
 
         public IEnumerator TurnFinished()
@@ -37,7 +38,7 @@ namespace StarLine2D.Controllers
 
             // 1) Ход врагов
             var allEnemyShips = _gc.Ships
-                .Where(s => s != null && s.GetComponent<EnemyController>() != null)
+                .Where(s => s && s.GetComponent<EnemyController>() != null)
                 .ToList();
             var playerShip = _gc.GetPlayerShip();
             foreach (var eship in allEnemyShips)
@@ -52,7 +53,7 @@ namespace StarLine2D.Controllers
 
             // 2) Ход союзников
             var allyShips = _gc.Ships
-                .Where(s => s != null && s.GetComponent<AllyController>() != null)
+                .Where(s => s && s.GetComponent<AllyController>() != null)
                 .ToList();
             foreach (var aShip in allyShips)
             {
@@ -61,7 +62,7 @@ namespace StarLine2D.Controllers
                 {
                     aCtrl.Move();
                     var enemiesForAllies = _gc.Ships
-                        .Where(s => s.GetComponent<EnemyController>() != null)
+                        .Where(s => s && s.GetComponent<EnemyController>() != null)
                         .ToList();
                     aCtrl.Shot(enemiesForAllies);
                 }
@@ -76,7 +77,9 @@ namespace StarLine2D.Controllers
             // 4) Атака для всех кораблей
             if (_attack)
             {
-                foreach (var ship in _gc.Ships)
+                // Возможно, к этому моменту какие-то корабли уже уничтожены,
+                // поэтому при обходе снова проверим s != null
+                foreach (var ship in _gc.Ships.Where(s => s))
                 {
                     _attack.Shot(ship);
                 }
@@ -88,13 +91,23 @@ namespace StarLine2D.Controllers
                 _collision.CheckShipCollisions();
             }
 
-            // 6) Убираем «мертвые» астероиды из списка
+            // 6) Убираем «мертвые» астероиды и корабли из списка
             if (_collision)
             {
                 _collision.CleanupAsteroids();
+                _collision.CleanupShips();
             }
 
-            // ... Можно добавить ещё логику, если нужно
+            // 7) Очистка статических клеток (подсветок) в CellsStateController
+            var cellsStateController = _gc.Field.GetComponent<CellsStateController>();
+            if (cellsStateController != null)
+            {
+                Debug.Log("CellsStateController ClearStaticCells");
+                // Важно очистить именно статические клетки
+                cellsStateController.ClearStaticCells();
+                // При желании можно также сбросить «динамическую» зону:
+                // cellsStateController.ClearZone();
+            }
         }
     }
 }

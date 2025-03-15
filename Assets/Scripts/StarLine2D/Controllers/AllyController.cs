@@ -38,7 +38,7 @@ namespace StarLine2D.Controllers
                 return;
             }
 
-            // Пример: идём случайно на соседнюю клетку (радиус 1)
+            // Пример: идём случайно на соседнюю клетку (радиус 1), без препятствий
             var targetCell = GetMoveCell();
             if (targetCell != null)
             {
@@ -95,6 +95,17 @@ namespace StarLine2D.Controllers
             var neighbors = field.GetNeighbors(ship.PositionCell, 1);
             if (neighbors.Count == 0)
                 return ship.PositionCell;
+
+            // ФИЛЬТРУЕМ препятствия
+            neighbors = neighbors
+                .Where(n => !n.HasObstacle)
+                .ToList();
+
+            if (neighbors.Count == 0)
+            {
+                // Нет доступных соседей, остаёмся на месте
+                return ship.PositionCell;
+            }
 
             var randomIndex = Random.Range(0, neighbors.Count);
             return neighbors[randomIndex];

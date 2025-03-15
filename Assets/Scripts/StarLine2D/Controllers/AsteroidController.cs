@@ -1,6 +1,7 @@
+using System.Collections;
+using StarLine2D.Utils.Extensions;
 using UnityEngine;
 using StarLine2D.Models;
-using System.Collections;
 
 namespace StarLine2D.Controllers
 {
@@ -128,10 +129,18 @@ namespace StarLine2D.Controllers
             var nextCellModel = new CubeCellModel(nextQ, nextR, nextS);
             var nextCell = field.FindCellByModel(nextCellModel);
 
+            // Если следующей ячейки нет — уничтожаем (вышли за границы)
             if (nextCell == null)
             {
                 Destroy(gameObject);
                 yield break;
+            }
+
+            // Если там препятствие — например, не двигаемся (или уничтожаемся).
+            if (nextCell.HasObstacle)
+            {
+                // Выбирайте логику сами. Например:
+                yield break; 
             }
 
             var oldPos = transform.position;
@@ -167,12 +176,16 @@ namespace StarLine2D.Controllers
 
             if (nextCell == null)
             {
-                // Вышли за границы, уничтожаем
                 Destroy(gameObject);
                 yield break;
             }
 
-            // Если не движемся
+            // Если там препятствие — не двигаемся (или уничтожаемся).
+            if (nextCell.HasObstacle)
+            {
+                yield break;
+            }
+
             if (nextCell == positionCell)
             {
                 if (_arrowRoot)
@@ -181,7 +194,6 @@ namespace StarLine2D.Controllers
             }
             else
             {
-                // Включаем стрелку
                 if (_arrowRoot)
                     _arrowRoot.gameObject.SetActive(true);
             }
