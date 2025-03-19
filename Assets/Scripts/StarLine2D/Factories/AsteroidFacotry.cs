@@ -1,153 +1,166 @@
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
+using StarLine2D.Controllers;
 using StarLine2D.Models;
+using UnityEngine;
 using Random = UnityEngine.Random;
 
-namespace StarLine2D.Controllers
+namespace StarLine2D.Factories
 {
     /// <summary>
-    /// Класс-фабрика для создания больших и малых астероидов.
+    /// Фабрика астероидов, которая инициализируется в Update (пока не готовы данные),
+    /// а потом один раз спавнит большие астероиды.
     /// </summary>
-    public class AsteroidFactory
+    public class AsteroidFactory : MonoBehaviour
     {
-        private readonly GameObject _bigAsteroidPrefab;
-        private readonly GameObject _smallAsteroidPrefab;
-        private readonly int _numberOfAsteroids;
-        private readonly int _minAsteroidHp;
-        private readonly int _maxAsteroidHp;
-        private readonly float _minAsteroidMass;
-        private readonly float _maxAsteroidMass;
+        [Header("Префабы")]
+        [SerializeField] private GameObject bigAsteroidPrefab;
+        [SerializeField] private GameObject smallAsteroidPrefab;
 
-        public AsteroidFactory(
-            GameObject bigAsteroidPrefab,
-            GameObject smallAsteroidPrefab,
-            int numberOfAsteroids,
-            int minAsteroidHp,
-            int maxAsteroidHp,
-            float minAsteroidMass,
-            float maxAsteroidMass
-        )
+        [Header("Настройки количества и параметров")]
+        [SerializeField] private FieldController field;
+        [SerializeField] private int numberOfAsteroids = 5;
+        [SerializeField] private int minAsteroidHp = 5;
+        [SerializeField] private int maxAsteroidHp = 20;
+        [SerializeField] private float minAsteroidMass = 0.5f;
+        [SerializeField] private float maxAsteroidMass = 3.0f;
+
+        [Header("Родитель в иерархии (для астероидов)")]
+        [SerializeField] private Transform parentAsteroids;
+
+        private readonly List<AsteroidController> spawnedAsteroids = new();
+
+        private bool isInitialized = false;
+
+        private void Update()
         {
-            _bigAsteroidPrefab = bigAsteroidPrefab;
-            _smallAsteroidPrefab = smallAsteroidPrefab;
-            _numberOfAsteroids = numberOfAsteroids;
-            _minAsteroidHp = minAsteroidHp;
-            _maxAsteroidHp = maxAsteroidHp;
-            _minAsteroidMass = minAsteroidMass;
-            _maxAsteroidMass = maxAsteroidMass;
+            if (isInitialized) return;
+
+            if (CheckReadyToSpawn())
+            {
+                isInitialized = true;
+                SpawnAsteroids();
+            }
+        }
+        
+        public List<AsteroidController> GetSpawnedAsteroids()
+        {
+            // 1) Удаляем все «пустые» ссылки из списка
+            spawnedAsteroids.RemoveAll(asteroid => asteroid == null);
+
+            // 2) Возвращаем «живые» астероиды
+            return spawnedAsteroids;
+        }
+
+
+        /// <summary>
+        /// Проверяем, "готовы" ли мы спавнить большие астероиды.
+        /// </summary>
+        private bool CheckReadyToSpawn()
+        {
+            if (field.Cells == null || field.Cells.Count == 0) return false;
+            return true;
         }
 
         /// <summary>
-        /// Спауним большие астероиды и возвращаем список AsteroidController.
+        /// Основной метод, который создаёт большие астероиды на свободных клетках.
+        /// Раньше был в Start(), теперь вызывается из Update() при условии готовности.
         /// </summary>
-        public List<AsteroidController> SpawnAsteroids(FieldController field, List<ShipController> ships)
+        private void SpawnAsteroids()
         {
-            var asteroids = new List<AsteroidController>();
+            Debug.Log($"[{name}] AsteroidFactory: начинаем спавн больших астероидов.");
 
-            if (_bigAsteroidPrefab == null)
-            {
-                Debug.LogWarning("Не задан префаб большого астероида!");
-                return asteroids;
-            }
+            // Ищем все корабли, если хотим избегать их клеток.
+            var allShips = FindObjectsOfType<ShipController>();
 
-            // Список ячеек, где нет препятствий И там нет кораблей
             var freeCells = field.Cells
-                .Where(cell => !cell.HasObstacle && !IsCellOccupiedByAnyShip(cell, ships))
+                .Where(cell => !cell.HasObstacle && !IsCellOccupiedByAnyShip(cell, allShips))
                 .OrderBy(_ => Random.value)
                 .ToList();
 
-            int spawnCount = _numberOfAsteroids;
-            if (freeCells.Count < spawnCount)
-                spawnCount = freeCells.Count;
+            int spawnCount = Mathf.Min(numberOfAsteroids, freeCells.Count);
 
             for (int i = 0; i < spawnCount; i++)
             {
-                var startCell = freeCells[i];
-                var asteroidGo = Object.Instantiate(
-                    _bigAsteroidPrefab, 
-                    startCell.transform.position, 
-                    Quaternion.identity
+                var cell = freeCells[i];
+                var asteroidGo = Instantiate(
+                    bigAsteroidPrefab,
+                    cell.transform.position,
+                    Quaternion.identity,
+                    parentAsteroids // <-- родитель
                 );
                 var asteroidCtrl = asteroidGo.GetComponent<AsteroidController>();
                 if (!asteroidCtrl)
                 {
-                    Debug.LogWarning("Префаб большого астероида не содержит AsteroidController!");
-                    continue;
+                    // Если отсутствует AsteroidController, добавляем
+                    asteroidCtrl = asteroidGo.AddComponent<AsteroidController>();
                 }
 
-                // Генерируем случайные параметры
-                var randomSize = AsteroidSize.Big;
-                var randomHp = Random.Range(_minAsteroidHp, _maxAsteroidHp + 1);
-                var randomMass = Random.Range(_minAsteroidMass, _maxAsteroidMass);
-                var randomDirection = GetRandomDirection();
+                int randomHp = Random.Range(minAsteroidHp, maxAsteroidHp + 1);
+                float randomMass = Random.Range(minAsteroidMass, maxAsteroidMass);
+                var randomDir = GetRandomDirection();
 
                 asteroidCtrl.Initialize(
-                    randomSize,
+                    AsteroidSize.Big,
                     randomHp,
                     randomMass,
-                    startCell,
-                    randomDirection
+                    cell,
+                    randomDir
                 );
 
-                asteroids.Add(asteroidCtrl);
+                spawnedAsteroids.Add(asteroidCtrl);
             }
 
-            return asteroids;
+            Debug.Log($"[{name}] Успешно заспавнено {spawnedAsteroids.Count} больших астероидов.");
         }
-
-        /// <summary>
-        /// Спауним малые астероиды вокруг расколовшегося большого (вызывается из GameController).
-        /// </summary>
-        public void SpawnSmallAsteroids(
-            AsteroidController bigAsteroid,
-            FieldController field,
-            List<AsteroidController> allAsteroids,
-            List<ShipController> ships
-        )
+        
+        public void SpawnSmallAsteroids(AsteroidController bigAsteroid)
         {
-            if (_smallAsteroidPrefab == null || bigAsteroid == null) 
-                return;
-            if (bigAsteroid.Size != AsteroidSize.Big) 
-                return;
+            if (smallAsteroidPrefab == null || bigAsteroid == null) return;
+            if (bigAsteroid.Size != AsteroidSize.Big) return;
 
-            var neighbors = field.GetNeighbors(bigAsteroid.PositionCell, 1);
-            // Фильтруем, чтобы там не было препятствия, других астероидов и кораблей
-            neighbors = neighbors.Where(cell =>
-                !cell.HasObstacle &&
-                !allAsteroids.Any(a => a && a.PositionCell == cell) &&
-                !IsCellOccupiedByAnyShip(cell, ships)
-            ).ToList();
+            // Ищем все астероиды и корабли, чтобы не пересекаться с ними
+            var allAsteroids = FindObjectsOfType<AsteroidController>();
+            var allShips = FindObjectsOfType<ShipController>();
+
+            var neighbors = field.GetNeighbors(bigAsteroid.PositionCell, 1)
+                .Where(cell =>
+                    !cell.HasObstacle &&
+                    !allAsteroids.Any(a => a.PositionCell == cell) &&
+                    !IsCellOccupiedByAnyShip(cell, allShips)
+                )
+                .ToList();
 
             int spawnCount = Random.Range(1, 7);
-            if (spawnCount > neighbors.Count)
-                spawnCount = neighbors.Count;
-            if (spawnCount <= 0) 
-                return;
+            spawnCount = Mathf.Min(spawnCount, neighbors.Count);
+            if (spawnCount <= 0) return;
 
-            var randomNeighbors = neighbors
+            neighbors = neighbors
                 .OrderBy(_ => Random.value)
                 .Take(spawnCount)
                 .ToList();
 
-            foreach (var cell in randomNeighbors)
+            foreach (var cell in neighbors)
             {
-                // Направление = вектор (newCell - oldCell)
                 var direction = new CubeCellModel(
                     cell.Q - bigAsteroid.PositionCell.Q,
                     cell.R - bigAsteroid.PositionCell.R,
                     cell.S - bigAsteroid.PositionCell.S
                 );
 
-                var smallGo = Object.Instantiate(
-                    _smallAsteroidPrefab,
+                var smallGo = Instantiate(
+                    smallAsteroidPrefab,
                     cell.transform.position,
-                    Quaternion.identity
+                    Quaternion.identity,
+                    parentAsteroids // <-- родитель для мелких
                 );
                 var smallCtrl = smallGo.GetComponent<AsteroidController>();
+                if (!smallCtrl)
+                {
+                    smallCtrl = smallGo.AddComponent<AsteroidController>();
+                }
 
-                // Расчёт HP и массы «осколка»
-                int smallHp = Mathf.Max(1, bigAsteroid.HP / 10);
+                int smallHp = Mathf.Max(1, bigAsteroid.Hp / 10);
                 float smallMass = Mathf.Max(0.1f, bigAsteroid.Mass / 10f);
 
                 smallCtrl.Initialize(
@@ -158,12 +171,29 @@ namespace StarLine2D.Controllers
                     direction
                 );
 
-                allAsteroids.Add(smallCtrl);
+                spawnedAsteroids.Add(smallCtrl);
             }
         }
 
         /// <summary>
-        /// Возвращает случайное направление (одно из шести) или (0,0,0).
+        /// Проверяем, занята ли клетка кем-либо из кораблей.
+        /// </summary>
+        private bool IsCellOccupiedByAnyShip(CellController cell, IEnumerable<ShipController> ships)
+        {
+            foreach (var ship in ships)
+            {
+                if (ship == null) continue;
+                foreach (var model in ship.ShipCellModels)
+                {
+                    if (model.Q == cell.Q && model.R == cell.R && model.S == cell.S)
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Случайное направление (шесть сторон + (0,0,0)).
         /// </summary>
         private CubeCellModel GetRandomDirection()
         {
@@ -180,24 +210,6 @@ namespace StarLine2D.Controllers
 
             int index = Random.Range(0, possibleDirections.Count);
             return possibleDirections[index];
-        }
-
-        /// <summary>
-        /// Проверяет, занята ли клетка `cell` кем-либо из кораблей (Q,R,S).
-        /// </summary>
-        private bool IsCellOccupiedByAnyShip(CellController cell, List<ShipController> ships)
-        {
-            foreach (var ship in ships)
-            {
-                if (ship == null) continue;
-                // Перебираем все клеточные модели этого корабля
-                foreach (var model in ship.ShipCellModels)
-                {
-                    if (model.Q == cell.Q && model.R == cell.R && model.S == cell.S)
-                        return true;
-                }
-            }
-            return false;
         }
     }
 }

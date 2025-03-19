@@ -1,40 +1,42 @@
-using UnityEngine;
-using StarLine2D.Components;
-using StarLine2D.Models; // Важно: чтобы видеть CubeCellModel и ShipShape
 using System.Collections.Generic;
 using System.Linq;
+using StarLine2D.Controllers;
+using StarLine2D.Models;
+using UnityEngine;
+// для CubeCellModel, ShipShape
 
-namespace StarLine2D.Controllers
+namespace StarLine2D.Managers
 {
     /// <summary>
     /// Менеджер атак и обработки нажатий Attack/Position.
     /// </summary>
     public class AttackManager : MonoBehaviour
     {
-        private GameController _gameController;
-        private CellsStateController _cellsStateController;
+        // Ссылки, задаваемые через редактор
+        [SerializeField] private FieldController fieldController;
+        [SerializeField] private CellsStateManager cellsStateManager;
+        [SerializeField] private ShipFactory shipFactory;
+
+        // Индекс текущего оружия
         private int _currentWeapon = -1;
 
-        public void Init(GameController controller)
-        {
-            _gameController = controller;
-            if (_gameController != null && _gameController.Field != null)
-            {
-                _cellsStateController = _gameController.Field.GetComponent<CellsStateController>();
-            }
-        }
-
-        /// <summary>
-        /// Кнопка "Position" - включаем зону перемещения
-        /// </summary>
+        // --------------------------------------------------------------------
+        // Кнопка "Position" — включаем зону перемещения
+        // --------------------------------------------------------------------
         public void OnPositionClicked()
         {
-            if (_gameController == null) return;
-
-            var player = _gameController.GetPlayerShip();
-            if (player == null)
+            Debug.Log($"OnPositionClicked");
+            var playerController = shipFactory.GetPlayerShip();
+            if (!playerController)
             {
-                Debug.LogError("Не найден корабль игрока!");
+                Debug.LogError("Не найден корабль игрока! (PlayerController отсутствует)");
+                return;
+            }
+
+            var player = playerController.GetComponent<ShipController>();
+            if (!player)
+            {
+                Debug.LogError("PlayerController есть, но нет ShipController!");
                 return;
             }
 
@@ -43,25 +45,34 @@ namespace StarLine2D.Controllers
             player.MoveCell = null;
 
             // Очищаем статические клетки и задаём зону перемещения
-            _cellsStateController.ClearStaticCells();
-            _cellsStateController.SetZone(
-                player.PositionCell,
-                player.MoveDistance,
-                CellsStateController.MoveZone,
-                ""
-            );
+            if (cellsStateManager)
+            {
+                cellsStateManager.ClearStaticCells();
+                cellsStateManager.SetZone(
+                    player.PositionCell,
+                    player.MoveDistance,
+                    CellsStateManager.MoveZone,
+                    ""
+                );
+            }
         }
 
-        /// <summary>
-        /// Кнопка "Attack" - включаем зону атаки для оружия (index).
-        /// </summary>
+        // --------------------------------------------------------------------
+        // Кнопка "Attack" — включаем зону атаки для оружия (index).
+        // --------------------------------------------------------------------
         public void OnAttackClicked(int index)
         {
-            if (_gameController == null) return;
-            var player = _gameController.GetPlayerShip();
-            if (player == null)
+            var playerController = shipFactory.GetPlayerShip();
+            if (!playerController)
             {
                 Debug.LogError("Не найден корабль игрока!");
+                return;
+            }
+
+            var player = playerController.GetComponent<ShipController>();
+            if (!player)
+            {
+                Debug.LogError("PlayerController есть, но нет ShipController!");
                 return;
             }
 
@@ -73,42 +84,53 @@ namespace StarLine2D.Controllers
             }
 
             // Формируем список клеток, которые займет корабль в новой позиции
-            var shapeCells = GetShapeCells(shape: player.ShipShape, headCell: player.MoveCell);
+            var shapeCells = GetShapeCells(player.ShipShape, player.MoveCell);
             if (shapeCells.Count == 0)
             {
-                Debug.Log("Невозможно построить форму на будущей клетке (выход за границы?)");
+                Debug.Log("Невозможно построить форму на будущей клетке (выход за границы поля?)");
                 return;
             }
 
             // Берём оружие игрока и создаём зону стрельбы
             var weapon = player.Weapons[index];
-            _cellsStateController.SetWeaponZoneForFuturePosition(
-                shapeCells,
-                weapon.Range,
-                weapon.Type.ToString()
-            );
+            if (cellsStateManager)
+            {
+                cellsStateManager.SetWeaponZoneForFuturePosition(
+                    shapeCells,
+                    weapon.Range,
+                    weapon.Type.ToString()
+                );
+            }
 
             _currentWeapon = index;
         }
 
-        /// <summary>
-        /// Обработка клика по клетке (когда активна какая-либо зона).
-        /// Вызывается при OnMouseDown у клетки или другими способами.
-        /// </summary>
+        // --------------------------------------------------------------------
+        // Обработка клика по клетке (когда активна зона).
+        // --------------------------------------------------------------------
         public void OnCellClicked(GameObject go)
         {
-            if (_gameController == null || _cellsStateController == null) return;
-            if (go == _gameController.Field.gameObject) return;
+            if (!cellsStateManager) return;
+            if (!go) return;
+            if (!fieldController) return;
+
+            // Проверяем, не кликнули ли мы по самому полю
+            if (go == fieldController.gameObject) return;
 
             var cell = go.GetComponent<CellController>();
-            var zone = _cellsStateController.Zone;
+            if (cell == null) return;
+
+            var zone = cellsStateManager.Zone;
             if (zone is null) return;
 
             // --- ЗОНА ПЕРЕМЕЩЕНИЯ ---
-            if (zone.Type == CellsStateController.MoveZone)
+            if (zone.Type == CellsStateManager.MoveZone)
             {
-                var player = _gameController.GetPlayerShip();
-                if (player == null) return;
+                var playerController = shipFactory.GetPlayerShip();
+                if (!playerController) return;
+
+                var player = playerController.GetComponent<ShipController>();
+                if (!player) return;
 
                 // Получаем клетки, которые займёт корабль при голове в cell
                 var shapeCells = GetShapeCells(player.ShipShape, cell);
@@ -118,62 +140,66 @@ namespace StarLine2D.Controllers
                     return;
                 }
 
-                // 1) Проверка: все ли клетки формы входят в зону
-                // (Если зона хранится в _cellsStateController.ZoneCells)
-                bool allCellsInZone = shapeCells.All(sc => _cellsStateController.ZoneCells.Contains(sc));
+                // Проверяем, все ли клетки формы входят в зону
+                bool allCellsInZone = shapeCells.All(sc => cellsStateManager.ZoneCells.Contains(sc));
                 if (!allCellsInZone)
                 {
-                    Debug.Log("Слишком далеко! Не все клетки формы корабля попадают в зону перемещения.");
+                    Debug.Log("Слишком далеко!");
                     return;
                 }
 
-                // 2) Проверка: нет ли препятствий
+                // Проверяем, нет ли препятствий
                 if (shapeCells.Any(sc => sc.HasObstacle))
                 {
                     Debug.Log("Невозможно сходить: часть клеток занята препятствием!");
                     return;
                 }
 
-                // 3) Если всё в порядке — добавляем статические клетки и выставляем MoveCell
+                // Если всё в порядке — добавляем статические клетки и выставляем MoveCell
                 for (int i = 0; i < shapeCells.Count; i++)
                 {
-                    _cellsStateController.AddStaticCell($"Move_{i}", shapeCells[i], CellsStateController.MoveActiveProfile);
+                    cellsStateManager.AddStaticCell($"Move_{i}", shapeCells[i], CellsStateManager.MoveActiveProfile);
                 }
 
                 player.MoveCell = cell;
-                _cellsStateController.ClearZone();
+                cellsStateManager.ClearZone();
                 return;
             }
 
             // --- ЗОНА АТАКИ ---
-            if (_currentWeapon != -1 && zone.Type == CellsStateController.WeaponZone)
+            if (_currentWeapon != -1 && zone.Type == CellsStateManager.WeaponZone)
             {
-                // При клике добавляем "активную" ячейку оружия
-                _cellsStateController.AddStaticCell(
+                cellsStateManager.AddStaticCell(
                     _currentWeapon.ToString(),
                     cell,
-                    CellsStateController.WeaponActiveProfile
+                    CellsStateManager.WeaponActiveProfile
                 );
-                var player = _gameController.GetPlayerShip();
-                if (player)
+
+                var playerController = shipFactory.GetPlayerShip();
+                if (playerController)
                 {
-                    player.Weapons[_currentWeapon].ShootCell = cell;
+                    var player = playerController.GetComponent<ShipController>();
+                    if (player && _currentWeapon < player.Weapons.Count)
+                    {
+                        player.Weapons[_currentWeapon].ShootCell = cell;
+                    }
                 }
-                _cellsStateController.ClearZone();
+
+                cellsStateManager.ClearZone();
             }
         }
 
-        /// <summary>
-        /// Логика выстрела (раньше была в GameController).
-        /// </summary>
+        // --------------------------------------------------------------------
+        // Логика выстрела
+        // --------------------------------------------------------------------
         public void Shot(ShipController ship)
         {
-            if (ship == null) return;
-            if (_gameController == null) return;
+            if (!ship) return;
+            if (!fieldController) return;
 
-            var field = _gameController.Field;
-            var asteroids = _gameController.Asteroids;
-            var ships = _gameController.Ships;
+            // Ищем все корабли и все астероиды
+            var asteroids = FindObjectsOfType<AsteroidController>();
+            var ships = FindObjectsOfType<ShipController>();
 
             foreach (var shipWeapon in ship.Weapons)
             {
@@ -182,13 +208,13 @@ namespace StarLine2D.Controllers
 
                 var shipCells = GetShipCells(ship);
 
+                // Ищем ближайшую клетку корабля к точке выстрела
                 CellController closestCell = null;
                 int minDistance = int.MaxValue;
 
-                // Ищем ближайшую из клеток корабля к точке выстрела
                 foreach (var c in shipCells)
                 {
-                    int dist = field.GetDistance(c, shipWeapon.ShootCell);
+                    int dist = fieldController.GetDistance(c, shipWeapon.ShootCell);
                     if (dist < minDistance)
                     {
                         minDistance = dist;
@@ -207,18 +233,19 @@ namespace StarLine2D.Controllers
                 }
                 else if (shipWeapon.Type == WeaponType.Beam)
                 {
-                    var cellsOnLine = field.GetLine(closestCell, shipWeapon.ShootCell);
+                    var cellsOnLine = fieldController.GetLine(closestCell, shipWeapon.ShootCell);
                     if (cellsOnLine.Count > 0 && cellsOnLine[0] == closestCell)
                     {
                         cellsOnLine.RemoveAt(0);
                     }
+
                     foreach (var lineCell in cellsOnLine)
                     {
                         shootCells.Add(lineCell);
                     }
                 }
 
-                // Игровая анимация выстрела
+                // Анимация выстрела
                 foreach (var cellShot in shootCells)
                 {
                     cellShot.ShotAnimation();
@@ -228,32 +255,34 @@ namespace StarLine2D.Controllers
                 var damagedShips = new HashSet<ShipController>();
                 foreach (var cellShot in shootCells)
                 {
-                    var damagedShip = ships.Find(s => s.PositionCell == cellShot);
+                    // Проверяем, не задели ли мы другой корабль
+                    var damagedShip = ships.FirstOrDefault(s => s.PositionCell == cellShot);
                     if (damagedShip != null)
                     {
                         if (!damagedShips.Contains(damagedShip))
                         {
-                            var resultedDamage = damagedShip.OnDamage(shipWeapon.Damage);
+                            var dmg = damagedShip.OnDamage(shipWeapon.Damage);
                             if (damagedShip == ship)
                             {
                                 // Самострел
-                                ship.AddScore(-resultedDamage);
+                                ship.AddScore(-dmg);
                             }
                             else
                             {
-                                ship.AddScore(resultedDamage);
+                                ship.AddScore(dmg);
                                 damagedShips.Add(damagedShip);
                             }
                         }
                     }
                     else
                     {
-                        // Возможно, попали в астероид
+                        // Или попали в астероид?
                         var asteroid = asteroids.FirstOrDefault(a => a.PositionCell == cellShot);
                         if (asteroid != null)
                         {
                             var damageDone = asteroid.OnDamage(shipWeapon.Damage);
-                            if (damageDone > 0 && asteroid.HP > 0)
+                            // Например, даём кораблю очки
+                            if (damageDone > 0 && asteroid.Hp > 0)
                             {
                                 ship.AddScore(5);
                             }
@@ -261,77 +290,69 @@ namespace StarLine2D.Controllers
                     }
                 }
 
-                // Сброс ShootCell после выстрела
+                // Сброс ShootCell
                 shipWeapon.ShootCell = null;
             }
         }
 
-        // --------------------------------------------------------------------------------
-        // ВНУТРЕННИЕ методы для расчёта формы корабля и занятых клеток.
-        // --------------------------------------------------------------------------------
+        // --------------------------------------------------------------------
+        // Вспомогательные методы для формы корабля / клеток
+        // --------------------------------------------------------------------
         private List<CellController> GetShapeCells(ShipShape shape, CellController headCell)
         {
-            if (headCell == null) 
+            if (!headCell)
                 return new List<CellController>();
-            if (_gameController == null) 
+            if (!fieldController)
                 return new List<CellController>();
 
-            var field = _gameController.Field;
             var result = new List<CellController> { headCell };
 
             switch (shape)
             {
                 case ShipShape.Single:
-                    // Одноклеточный - ничего не добавляем
+                    // Одноклеточный — ничего добавлять не нужно
                     break;
 
                 case ShipShape.HorizontalR:
                 {
-                    // Вправо: (Q-1,R,S+1)
                     var modelLeft = new CubeCellModel(headCell.Q - 1, headCell.R, headCell.S + 1);
-                    var leftCell = field.FindCellByModel(modelLeft);
-                    if (leftCell == null)
-                        return new List<CellController>();
+                    var leftCell = fieldController.FindCellByModel(modelLeft);
+                    if (!leftCell) return new List<CellController>();
                     result.Add(leftCell);
                     break;
                 }
                 case ShipShape.HorizontalL:
                 {
-                    // Влево: (Q+1,R,S-1)
                     var modelRight = new CubeCellModel(headCell.Q + 1, headCell.R, headCell.S - 1);
-                    var rightCell = field.FindCellByModel(modelRight);
-                    if (rightCell == null)
-                        return new List<CellController>();
+                    var rightCell = fieldController.FindCellByModel(modelRight);
+                    if (!rightCell) return new List<CellController>();
                     result.Add(rightCell);
                     break;
                 }
             }
+
             return result;
         }
 
         private List<CellController> GetShipCells(ShipController ship)
         {
-            if (ship == null || _gameController == null) 
-                return new List<CellController>();
+            if (!ship) return new List<CellController>();
+            if (!fieldController) return new List<CellController>();
 
             var result = new List<CellController>();
-            var field = _gameController.Field;
-            var modelCells = ship.ShipCellModels;
-
-            foreach (var model in modelCells)
+            foreach (var model in ship.ShipCellModels)
             {
-                var controller = field.FindCellByModel(model);
+                var controller = fieldController.FindCellByModel(model);
                 if (controller != null)
                 {
                     result.Add(controller);
                 }
             }
+
             return result;
         }
 
-        // --------------------------------------------------------------------------------
-        // ПУБЛИЧНЫЕ методы для "обёртки" в GameController (если нужно).
-        // --------------------------------------------------------------------------------
+        // Публичные «обёртки» (если нужно вызывать снаружи)
         public List<CellController> GetShapeCells_Public(ShipShape shape, CellController headCell)
         {
             return GetShapeCells(shape, headCell);

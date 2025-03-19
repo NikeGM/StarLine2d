@@ -16,7 +16,7 @@ namespace StarLine2D.Controllers
     public class FieldController : MonoBehaviour
     {
         [SerializeField] private CellController cellPrefab;
-        [SerializeField] private CellsStateController cellsStateController;
+        [SerializeField] private CellsStateManager cellsStateManager;
         [SerializeField] [Range(1, 30)] private int gridWidth = 30;
         [SerializeField] [Range(1, 25)] private int gridHeight = 25;
 
@@ -27,7 +27,7 @@ namespace StarLine2D.Controllers
         public OnClickComponent OnClick => _onClick;
         public List<CellController> Cells => _cells; 
         public CubeGridModel CubeGridModel => cubeGridModel;
-        public CellsStateController CellStateController => cellsStateController;
+        public CellsStateManager CellStateManager => cellsStateManager;
 
         private bool _initialized;
         private float _cellHeight;
