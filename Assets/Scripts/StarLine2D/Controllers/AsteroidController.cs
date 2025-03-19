@@ -1,7 +1,10 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using StarLine2D.Factories;
 using StarLine2D.Models;
+using StarLine2D.Utils.Disposable;
+using UnityEngine.Events;
 
 namespace StarLine2D.Controllers
 {
@@ -23,7 +26,11 @@ namespace StarLine2D.Controllers
         [SerializeField] private Transform arrowRoot;
         [SerializeField] private ParticleSystem destroyParticles;
         [SerializeField] private Animator animator;
+        
         [SerializeField] private UnityEvent onDestroy;
+        
+        private Action _onDestroy;
+        private CompositeDisposable _trash = new();
         
         private bool isDestroying;
 
@@ -152,6 +159,22 @@ namespace StarLine2D.Controllers
             arrowRoot.rotation = Quaternion.Euler(0, 0, arrowAngle);
         }
         
+        public ActionDisposable Subscribe(Action call)
+        {
+            _onDestroy += call;
+            var disposable = new ActionDisposable(() => _onDestroy -= call);
+            _trash.Retain(disposable);
+            
+            return disposable;
+        }
+
+        private void OnDestroy()
+        {
+            _onDestroy?.Invoke();
+            onDestroy?.Invoke();
+            
+            _trash?.Dispose();
+        }
         
     }
 }

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using StarLine2D.Controllers;
 using StarLine2D.Models;
+using StarLine2D.Utils.Disposable;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -107,7 +108,8 @@ namespace StarLine2D.Factories
                     cell,
                     randomDir
                 );
-
+                
+                asteroidCtrl.Subscribe(() => spawnedAsteroids.Remove(asteroidCtrl));
                 spawnedAsteroids.Add(asteroidCtrl);
             }
 
