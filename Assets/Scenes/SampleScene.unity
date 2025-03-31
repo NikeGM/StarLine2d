@@ -5424,10 +5424,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   field: {fileID: 1677296064}
-  playerPrefab: {fileID: 6313968542848542829, guid: 75db12a5259484192b4c00383a97d88d, type: 3}
-  numberOfAllies: 2
-  numberOfEnemies: 3
+  playerPrefab: {fileID: 6313968542848542829, guid: 2bd5eeeaa680742c18a17eea7ffed409, type: 3}
+  numberOfAllies: 0
+  numberOfEnemies: 1
   parentShips: {fileID: 612398735}
+  positionManager: {fileID: 1053015821}
 --- !u!1001 &322040018
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -14118,7 +14119,7 @@ MonoBehaviour:
   prefabs:
   - prefab: {fileID: 8457788082549557393, guid: 855420b159f464dcc86aa17501febab5, type: 3}
   - prefab: {fileID: 8457788082549557393, guid: 3f93d52c37d9e430cbe94a1f2afbeb32, type: 3}
-  numberOfObstacles: 3
+  numberOfObstacles: 60
   parentObstacles: {fileID: 564030082}
 --- !u!1001 &921246663
 PrefabInstance:
@@ -16594,6 +16595,54 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1914950611428413660, guid: 7d27e4a6b81a5467cb57516678671a7f, type: 3}
   m_PrefabInstance: {fileID: 1051608835}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1053015820
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1053015822}
+  - component: {fileID: 1053015821}
+  m_Layer: 0
+  m_Name: PositionManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1053015821
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1053015820}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ad6b59a011ee1414f9d1b52ea716dce6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  field: {fileID: 1677296064}
+  asteroidFactory: {fileID: 430448331}
+  obstacleFactory: {fileID: 903537776}
+  shipFactory: {fileID: 315215967}
+--- !u!4 &1053015822
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1053015820}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1513684129}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1062165855
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -23267,6 +23316,7 @@ Transform:
   - {fileID: 1733376339}
   - {fileID: 88757250}
   - {fileID: 1962180702}
+  - {fileID: 1053015822}
   m_Father: {fileID: 623035309}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1514964223
