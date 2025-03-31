@@ -3,6 +3,7 @@ using System.Linq;
 using StarLine2D.Controllers;
 using StarLine2D.Models;
 using UnityEngine;
+
 // для CubeCellModel, ShipShape
 
 namespace StarLine2D.Managers
@@ -194,24 +195,49 @@ namespace StarLine2D.Managers
         // --------------------------------------------------------------------
         public void Shot(ShipController ship)
         {
-            if (!ship) return;
-            if (!fieldController) return;
+            if (!ship)
+            {
+                Debug.LogWarning("AttackManager.Shot called with null ship!");
+                return;
+            }
 
-            // Ищем все корабли и все астероиды
+            Debug.Log($"AttackManager: Shot(...) called for ship [{ship.name}] with shape [{ship.ShipShape}]");
+
+            if (!fieldController)
+            {
+                Debug.LogWarning("No fieldController in AttackManager!");
+                return;
+            }
+
             var asteroids = FindObjectsOfType<AsteroidController>();
             var ships = FindObjectsOfType<ShipController>();
 
             foreach (var shipWeapon in ship.Weapons)
             {
-                if (!ship.PositionCell || !shipWeapon.ShootCell)
-                    continue;
+                Debug.Log(
+                    $"Check weapon {shipWeapon.Type}, " +
+                    $"Damage={shipWeapon.Damage}, Range={shipWeapon.Range}, " +
+                    $"ShootCell={(shipWeapon.ShootCell ? shipWeapon.ShootCell.name : "null")}"
+                );
 
+                // Если нет позиционной клетки корабля, или нет цели ShootCell
+                if (!ship.PositionCell || !shipWeapon.ShootCell)
+                {
+                    Debug.Log($"Skip weapon: PositionCell or ShootCell is null. ship.PositionCell={ship.PositionCell}");
+                    continue;
+                }
+
+                // Проверяем дистанцию
                 var shipCells = GetShipCells(ship);
+                if (shipCells.Count == 0)
+                {
+                    Debug.Log("Ship has no cells or out of field");
+                    continue;
+                }
 
                 // Ищем ближайшую клетку корабля к точке выстрела
                 CellController closestCell = null;
                 int minDistance = int.MaxValue;
-
                 foreach (var c in shipCells)
                 {
                     int dist = fieldController.GetDistance(c, shipWeapon.ShootCell);
@@ -222,14 +248,21 @@ namespace StarLine2D.Managers
                     }
                 }
 
-                if (closestCell == null) continue;
-                if (minDistance > shipWeapon.Range) continue;
+                Debug.Log($"Distance to target: {minDistance}, Range={shipWeapon.Range}");
 
-                // Собираем клетки, по которым "пройдёт" выстрел
+                // Если цель вне диапазона
+                if (minDistance > shipWeapon.Range)
+                {
+                    Debug.Log("Target is out of weapon range! Skipping...");
+                    continue;
+                }
+
+                // Формируем список клеток, по которым "пройдёт" выстрел
                 var shootCells = new HashSet<CellController>();
                 if (shipWeapon.Type == WeaponType.Point)
                 {
                     shootCells.Add(shipWeapon.ShootCell);
+                    Debug.Log($"Weapon=Point: single cell => {shipWeapon.ShootCell.name}");
                 }
                 else if (shipWeapon.Type == WeaponType.Beam)
                 {
@@ -243,11 +276,14 @@ namespace StarLine2D.Managers
                     {
                         shootCells.Add(lineCell);
                     }
+
+                    Debug.Log($"Weapon=Beam: line cells => {string.Join(", ", cellsOnLine.Select(c => c.name))}");
                 }
 
                 // Анимация выстрела
                 foreach (var cellShot in shootCells)
                 {
+                    Debug.Log($"cellShot.ShotAnimation() => {cellShot.name}");
                     cellShot.ShotAnimation();
                 }
 
@@ -261,16 +297,19 @@ namespace StarLine2D.Managers
                     {
                         if (!damagedShips.Contains(damagedShip))
                         {
+                            Debug.Log($"Damage ship: {damagedShip.name} with {shipWeapon.Damage} dmg");
                             var dmg = damagedShip.OnDamage(shipWeapon.Damage);
                             if (damagedShip == ship)
                             {
                                 // Самострел
                                 ship.AddScore(-dmg);
+                                Debug.Log($"Self-damage: score={ship.Score.Value}");
                             }
                             else
                             {
                                 ship.AddScore(dmg);
                                 damagedShips.Add(damagedShip);
+                                Debug.Log($"Score after damage: {ship.Score.Value}");
                             }
                         }
                     }
@@ -281,10 +320,10 @@ namespace StarLine2D.Managers
                         if (asteroid != null)
                         {
                             var damageDone = asteroid.OnDamage(shipWeapon.Damage);
-                            // Например, даём кораблю очки
                             if (damageDone > 0 && asteroid.Hp > 0)
                             {
                                 ship.AddScore(5);
+                                Debug.Log($"Damaged asteroid: +5 score => {ship.Score.Value}");
                             }
                         }
                     }
@@ -292,8 +331,10 @@ namespace StarLine2D.Managers
 
                 // Сброс ShootCell
                 shipWeapon.ShootCell = null;
+                Debug.Log("ShootCell reset");
             }
         }
+
 
         // --------------------------------------------------------------------
         // Вспомогательные методы для формы корабля / клеток

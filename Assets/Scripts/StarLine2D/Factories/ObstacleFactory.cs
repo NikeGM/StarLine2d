@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using StarLine2D.Controllers;
+using Unity.VisualScripting;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace StarLine2D.Factories
 {
@@ -12,6 +14,9 @@ namespace StarLine2D.Factories
 
         [Header("Родитель в иерархии (для препятствий)")]
         [SerializeField] private Transform parentObstacles;
+
+        // Список заспавненных препятствий
+        private readonly List<ObstacleController> _spawnedObstacles = new();
 
         private bool _isInitialized = false;
 
@@ -25,46 +30,70 @@ namespace StarLine2D.Factories
             }
         }
 
+        /// <summary>
+        /// Возвращает список текущих (живых) препятствий, 
+        /// убирая из списка все уже уничтоженные (null).
+        /// </summary>
+        public List<ObstacleController> GetSpawnedObstacles()
+        {
+            _spawnedObstacles.RemoveAll(obstacle => obstacle == null);
+            return _spawnedObstacles;
+        }
+
         private bool CheckReadyToSpawn()
         {
-            if (field.Cells == null || field.Cells.Count == 0) return false;
+            if (field == null || field.Cells == null || field.Cells.Count == 0) return false;
             return true;
         }
 
         private void SpawnObstacles()
         {
             Debug.Log($"[{name}] ObstacleFactory: начинаем спавн препятствий.");
+
             var allCells = field.Cells;
             if (allCells.Count == 0 || prefabs.Count == 0)
             {
                 Debug.LogWarning($"[{name}] Нет клеток в field или нет префабов!");
                 return;
             }
+
             Shuffle(allCells);
+
             int obstaclesCreated = 0;
             int cellIndex = 0;
             while (obstaclesCreated < numberOfObstacles && cellIndex < allCells.Count)
             {
                 var cell = allCells[cellIndex];
                 cellIndex++;
+
                 if (!IsCellFree(cell)) continue;
+
                 var prefabIndex = Random.Range(0, prefabs.Count);
                 var obstaclePrefab = prefabs[prefabIndex].prefab;
+
                 var obstacleGO = Instantiate(
                     obstaclePrefab,
                     cell.transform.position,
                     Quaternion.identity,
                     parentObstacles // <-- родитель
                 );
+
                 var obstacleCtrl = obstacleGO.GetComponent<ObstacleController>();
                 if (obstacleCtrl == null)
                 {
                     obstacleCtrl = obstacleGO.AddComponent<ObstacleController>();
                 }
+
                 obstacleCtrl.PositionCell = cell;
                 cell.SetObstacle(obstacleCtrl);
+
+                // Подписываемся на уничтожение препятствия, чтобы удалить его из списка
+                obstacleCtrl.Subscribe(() => _spawnedObstacles.Remove(obstacleCtrl));
+                _spawnedObstacles.Add(obstacleCtrl);
+
                 obstaclesCreated++;
             }
+
             Debug.Log($"[{name}] Успешно заспавнено {obstaclesCreated} препятствий.");
         }
 

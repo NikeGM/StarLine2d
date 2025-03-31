@@ -62,6 +62,8 @@ namespace StarLine2D.Controllers
 
         public void ShotAnimation()
         {
+            Debug.Log(
+                $"Cell[{name}] ShotAnimation() called. shotAnimation={(shotAnimation ? shotAnimation.name : "null")}");
             PlayAnimation(shotAnimation);
         }
 
@@ -72,8 +74,12 @@ namespace StarLine2D.Controllers
 
         private void PlayAnimation(ParticleSystem particleAnimation)
         {
-            if (particleAnimation is null) return;
-            
+            if (particleAnimation is null)
+            {
+                Debug.LogWarning($"No ParticleSystem assigned for cell [{name}]!");
+                return;
+            }
+
             // Ищем в сцене объект "Animation" для родителя частиц
             Transform animParent = null;
             var animGo = GameObject.Find("Animation");
@@ -82,10 +88,11 @@ namespace StarLine2D.Controllers
                 animParent = animGo.transform;
             }
 
+            Debug.Log($"Instantiate particle [{particleAnimation.name}] at cell [{name}]");
             var instance = Instantiate(particleAnimation, transform.position, Quaternion.identity, animParent);
             instance.Play();
 
-            Destroy(instance.gameObject, instance.main.duration);
+            // Destroy(instance.gameObject, instance.main.duration);
         }
 
         private void Update()

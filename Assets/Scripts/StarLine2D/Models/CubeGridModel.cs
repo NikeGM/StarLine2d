@@ -223,7 +223,7 @@ namespace StarLine2D.Models
         
         public int GetDistance(CubeCellModel a, CubeCellModel b)
         {
-            return (Mathf.Abs(a.Q - b.Q) + Mathf.Abs(a.R - b.R) + Mathf.Abs(a.S - b.S)) / 2 + 1;
+            return (Mathf.Abs(a.Q - b.Q) + Mathf.Abs(a.R - b.R) + Mathf.Abs(a.S - b.S)) / 2;
         }
     }
 }
