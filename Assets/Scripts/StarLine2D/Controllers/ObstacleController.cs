@@ -1,38 +1,46 @@
-using UnityEngine;
 using System;
+using System.Collections.Generic;
+using UnityEngine;
 using StarLine2D.Utils.Disposable;
+using StarLine2D.Managers;
 
 namespace StarLine2D.Controllers
 {
-    /// <summary>
-    /// Данные о префабе препятствия.
-    /// Похоже на ShipPrefabData — у нас может быть несколько вариантов префабов.
-    /// </summary>
     [Serializable]
     public class ObstaclePrefabData
     {
         public GameObject prefab;
     }
-}
 
-namespace StarLine2D.Controllers
-{
-    /// <summary>
-    /// Компонент «препятствия» (статический объект).
-    /// Например, может иметь какую-то графику, коллайдер и т.д.
-    /// </summary>
-    public class ObstacleController : MonoBehaviour
+    public class ObstacleController : MonoBehaviour, ICollisionParticipant
     {
-        public CellController PositionCell { get; set; }
-
-        // Логика для подписок на уничтожение.
+        [SerializeField] private CellController positionCell;
         private Action _onDestroy;
         private readonly CompositeDisposable _trash = new();
 
-        /// <summary>
-        /// Метод для подписки на событие уничтожения.
-        /// Аналогично AsteroidController / ShipController.
-        /// </summary>
+        public IEnumerable<CellController> DesiredCells
+        {
+            get
+            {
+                if (positionCell != null) yield return positionCell;
+            }
+        }
+
+        public float Mass => 0f;
+        public bool IsObstacle => true;
+
+        public CellController PositionCell
+        {
+            get => positionCell;
+            set => positionCell = value;
+        }
+
+        public int OnDamage(int dmg)
+        {
+            Debug.Log("Obstacle is indestructible => ignore damage.");
+            return 0;
+        }
+
         public ActionDisposable Subscribe(Action call)
         {
             _onDestroy += call;
@@ -41,14 +49,11 @@ namespace StarLine2D.Controllers
             return disposable;
         }
 
-        /// <summary>
-        /// Вызывается при уничтожении GameObject. 
-        /// Сначала вызываются все подписки, затем очищаются Disposable.
-        /// </summary>
         private void OnDestroy()
         {
             _onDestroy?.Invoke();
-            _trash?.Dispose();
+            positionCell = null;
+            _trash.Dispose();
         }
     }
 }

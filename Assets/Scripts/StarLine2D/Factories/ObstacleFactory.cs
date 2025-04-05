@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using StarLine2D.Controllers;
-using Unity.VisualScripting;
+using StarLine2D.Managers;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -11,98 +11,59 @@ namespace StarLine2D.Factories
         [SerializeField] private FieldController field;
         [SerializeField] private List<ObstaclePrefabData> prefabs;
         [SerializeField] private int numberOfObstacles = 3;
-
-        [Header("Родитель в иерархии (для препятствий)")]
         [SerializeField] private Transform parentObstacles;
+        [SerializeField] private PositionManager positionManager;
 
-        // Список заспавненных препятствий
         private readonly List<ObstacleController> _spawnedObstacles = new();
+        private bool _isInitialized;
 
-        private bool _isInitialized = false;
+        private void Awake()
+        {
+            if (!field) Debug.LogError($"[{name}] FieldController не назначен.");
+            if (prefabs == null || prefabs.Count == 0) Debug.LogError($"[{name}] Список префабов препятствий пуст.");
+            if (!parentObstacles) Debug.LogError($"[{name}] Transform parentObstacles не назначен.");
+            if (!positionManager) Debug.LogError($"[{name}] PositionManager не назначен.");
+        }
 
         private void Update()
         {
-            if (_isInitialized) return;
-            if (CheckReadyToSpawn())
-            {
-                _isInitialized = true;
-                SpawnObstacles();
-            }
+            if (_isInitialized || !CheckReadyToSpawn()) return;
+            _isInitialized = true;
+            SpawnObstacles();
         }
 
-        /// <summary>
-        /// Возвращает список текущих (живых) препятствий, 
-        /// убирая из списка все уже уничтоженные (null).
-        /// </summary>
         public List<ObstacleController> GetSpawnedObstacles()
         {
-            _spawnedObstacles.RemoveAll(obstacle => obstacle == null);
+            _spawnedObstacles.RemoveAll(obstacle => !obstacle);
             return _spawnedObstacles;
         }
 
         private bool CheckReadyToSpawn()
         {
-            if (field == null || field.Cells == null || field.Cells.Count == 0) return false;
-            return true;
+            return field && field.Cells != null && field.Cells.Count != 0;
         }
 
         private void SpawnObstacles()
         {
-            Debug.Log($"[{name}] ObstacleFactory: начинаем спавн препятствий.");
-
-            var allCells = field.Cells;
-            if (allCells.Count == 0 || prefabs.Count == 0)
-            {
-                Debug.LogWarning($"[{name}] Нет клеток в field или нет префабов!");
-                return;
-            }
+            var allCells = positionManager.GetValidCellsForObstacle();
+            if (allCells.Count == 0 || prefabs.Count == 0) return;
 
             Shuffle(allCells);
-
-            int obstaclesCreated = 0;
-            int cellIndex = 0;
-            while (obstaclesCreated < numberOfObstacles && cellIndex < allCells.Count)
+            int created = 0;
+            for (int i = 0; i < allCells.Count && created < numberOfObstacles; i++)
             {
-                var cell = allCells[cellIndex];
-                cellIndex++;
-
-                if (!IsCellFree(cell)) continue;
-
-                var prefabIndex = Random.Range(0, prefabs.Count);
-                var obstaclePrefab = prefabs[prefabIndex].prefab;
-
-                var obstacleGO = Instantiate(
-                    obstaclePrefab,
-                    cell.transform.position,
-                    Quaternion.identity,
-                    parentObstacles // <-- родитель
-                );
-
-                var obstacleCtrl = obstacleGO.GetComponent<ObstacleController>();
-                if (obstacleCtrl == null)
-                {
-                    obstacleCtrl = obstacleGO.AddComponent<ObstacleController>();
-                }
-
-                obstacleCtrl.PositionCell = cell;
-                cell.SetObstacle(obstacleCtrl);
-
-                // Подписываемся на уничтожение препятствия, чтобы удалить его из списка
-                obstacleCtrl.Subscribe(() => _spawnedObstacles.Remove(obstacleCtrl));
-                _spawnedObstacles.Add(obstacleCtrl);
-
-                obstaclesCreated++;
+                var cell = allCells[i];
+                var index = Random.Range(0, prefabs.Count);
+                var obstacle = Instantiate(prefabs[index].prefab, cell.transform.position, Quaternion.identity, parentObstacles);
+                var ctrl = obstacle.GetComponent<ObstacleController>() ?? obstacle.AddComponent<ObstacleController>();
+                ctrl.PositionCell = cell;
+                ctrl.Subscribe(() => _spawnedObstacles.Remove(ctrl));
+                _spawnedObstacles.Add(ctrl);
+                created++;
             }
-
-            Debug.Log($"[{name}] Успешно заспавнено {obstaclesCreated} препятствий.");
         }
 
-        private bool IsCellFree(CellController cell)
-        {
-            return !cell.HasObstacle;
-        }
-
-        private void Shuffle<T>(List<T> list)
+        private static void Shuffle<T>(List<T> list)
         {
             for (int i = list.Count - 1; i > 0; i--)
             {

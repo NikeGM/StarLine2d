@@ -1,5 +1,6 @@
 using System;
 using StarLine2D.Controllers;
+using StarLine2D.Managers;
 using StarLine2D.Utils;
 using UnityEngine;
 
@@ -12,7 +13,6 @@ namespace StarLine2D.Components
 
         private void Awake()
         {
-            // Попытка найти CellsStateManager на родительском объекте
             var fieldController = GetComponentInParent<FieldController>();
             if (fieldController != null)
             {
@@ -29,10 +29,10 @@ namespace StarLine2D.Components
         {
             _hover = true;
 
-            if (_cellsStateManager != null)
+            if (_cellsStateManager)
             {
                 var cellController = GetComponent<CellController>();
-                if (cellController != null)
+                if (cellController)
                 {
                     _cellsStateManager.SetHoveredCell(cellController);
                 }
@@ -43,10 +43,10 @@ namespace StarLine2D.Components
         {
             _hover = false;
 
-            if (_cellsStateManager != null)
+            if (_cellsStateManager)
             {
                 var cellController = GetComponent<CellController>();
-                if (cellController != null)
+                if (cellController)
                 {
                     _cellsStateManager.SetHoveredCell(null);
                 }

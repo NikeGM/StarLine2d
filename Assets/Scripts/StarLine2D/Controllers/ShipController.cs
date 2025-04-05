@@ -1,23 +1,25 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using StarLine2D.Models;
 using StarLine2D.Utils.Observables;
 using StarLine2D.Utils.Disposable;
+using StarLine2D.Managers;
 
 namespace StarLine2D.Controllers
 {
     public enum WeaponType
     {
-        Point, // Точечное оружие
-        Beam   // Лучевое оружие
+        Point,
+        Beam
     }
 
     public enum ShipShape
     {
-        Single,       // Одна клетка
-        HorizontalR,  // Две клетки по горизонтали (доп. слева)
-        HorizontalL   // Две клетки по горизонтали (доп. справа)
+        Single,
+        HorizontalR,
+        HorizontalL
     }
 
     [Serializable]
@@ -36,12 +38,11 @@ namespace StarLine2D.Controllers
         public CellController ShootCell { get; set; }
     }
 
-    public class ShipController : MonoBehaviour
+    public class ShipController : MonoBehaviour, ICollisionParticipant
     {
-        // Убираем [SerializeField], чтобы поле не задавалось через инспектор
-        private FieldController field;
-
-        [Header("Настройки корабля")]
+        [SerializeField] private ParticleSystem shotAnimation;
+        [SerializeField] private ParticleSystem explosionAnimation;
+        [SerializeField] private float mass = 1f;
         [SerializeField] private IntObservableProperty health;
         [SerializeField] private IntObservableProperty score;
         [SerializeField] private MoveController moveController;
@@ -49,26 +50,17 @@ namespace StarLine2D.Controllers
         [SerializeField] private int maxHealth = 100;
         [SerializeField] private List<Weapon> weapons = new();
         [SerializeField] private ShipShape shipShape = ShipShape.Single;
-
         [SerializeField] private CellController positionCell;
 
-        // Список моделей клеток (CubeCellModel) для вычислений формы
+        private FieldController field;
         private readonly List<CubeCellModel> shipCellModels = new();
-
         private Action _onDestroy;
-        private CompositeDisposable _trash = new();
+        private readonly CompositeDisposable _trash = new();
 
         public CellController MoveCell { get; set; }
+        public float Mass => mass;
+        public bool IsObstacle => false;
 
-        public IntObservableProperty Health => health;
-        public IntObservableProperty Score => score;
-        public int MaxHealth => maxHealth;
-        public int MoveDistance => moveDistance;
-        public MoveController MoveController => moveController;
-        public List<Weapon> Weapons => weapons;
-        public ShipShape ShipShape => shipShape;
-
-        // При изменении "головной" клетки пересчитываем модели формы корабля
         public CellController PositionCell
         {
             get => positionCell;
@@ -79,17 +71,32 @@ namespace StarLine2D.Controllers
             }
         }
 
+        public IntObservableProperty Health => health;
+        public IntObservableProperty Score => score;
+        public int MaxHealth => maxHealth;
+        public int MoveDistance => moveDistance;
+        public MoveController MoveController => moveController;
+        public List<Weapon> Weapons => weapons;
+        public ShipShape ShipShape => shipShape;
         public List<CubeCellModel> ShipCellModels => shipCellModels;
+
+        public IEnumerable<CellController> DesiredCells
+        {
+            get
+            {
+                var mainCell = MoveCell ?? positionCell;
+                if (!mainCell) yield break;
+                foreach (var c in GetShapeCells(shipShape, mainCell))
+                {
+                    if (c != null) yield return c;
+                }
+            }
+        }
 
         private void Awake()
         {
-            // Пытаемся найти FieldController на сцене
             field = FindObjectOfType<FieldController>();
-            if (!field)
-            {
-                Debug.LogWarning($"[{name}] ShipController: FieldController не найден на сцене!");
-            }
-
+            if (!field) Debug.LogError($"[{name}] FieldController not found in scene.");
             OnValidate();
         }
 
@@ -101,92 +108,15 @@ namespace StarLine2D.Controllers
             UpdateShipCellModels();
         }
 
-        /// <summary>
-        /// Формируем список занимаемых клеток и обновляем визуальную позицию
-        /// </summary>
-        private void UpdateShipCellModels()
+        public int OnDamage(int dmg)
         {
-            shipCellModels.Clear();
-            if (!positionCell) return;
-
-            var q = positionCell.Q;
-            var r = positionCell.R;
-            var s = positionCell.S;
-
-            // Всегда добавляем "головную" клетку
-            shipCellModels.Add(new CubeCellModel(q, r, s));
-
-            // Добавляем вторую клетку (если корабль двухклеточный)
-            switch (shipShape)
-            {
-                case ShipShape.Single:
-                    // Нет второй клетки
-                    break;
-
-                case ShipShape.HorizontalR:
-                    // Доп. клетка слева (q-1, s+1)
-                    shipCellModels.Add(new CubeCellModel(q - 1, r, s + 1));
-                    break;
-
-                case ShipShape.HorizontalL:
-                    // Доп. клетка справа (q+1, s-1)
-                    shipCellModels.Add(new CubeCellModel(q + 1, r, s - 1));
-                    break;
-            }
-
-            // Обновляем позицию по среднему между всеми клетками
-            UpdateVisualPosition();
-        }
-
-        /// <summary>
-        /// Ставит центр корабля в середину всех занимаемых им клеток.
-        /// Если корабль одноклеточный – позиция совпадает с одной клеткой,
-        /// если двухклеточный – будет по центру между ними.
-        /// </summary>
-        private void UpdateVisualPosition()
-        {
-            if (!field)
-            {
-                // Если не нашли FieldController — ничего не делаем
-                return;
-            }
-
-            if (shipCellModels.Count == 0) return;
-
-            Vector3 sumPositions = Vector3.zero;
-            int count = 0;
-
-            // Суммируем координаты всех занятых клеток
-            foreach (var cubeCell in shipCellModels)
-            {
-                var cell = field.FindCellByModel(cubeCell);
-                if (cell != null)
-                {
-                    sumPositions += cell.transform.position;
-                    count++;
-                }
-            }
-
-            if (count > 0)
-            {
-                // Среднее арифметическое
-                transform.position = sumPositions / count;
-            }
-
-            // Масштаб оставляем (1,1,1), чтобы корабль НЕ растягивался
-            transform.localScale = Vector3.one;
-        }
-
-        public int OnDamage(int inputDamage)
-        {
-            var currentHp = health.Value;
-            health.Value -= inputDamage;
-            if (health.Value > 0) return inputDamage;
-
-            PositionCell?.ExplosionAnimation();
+            var oldHp = health.Value;
+            health.Value -= dmg;
+            if (health.Value > 0) return dmg;
+            Debug.Log($"Ship {name} destroyed by damage {dmg}.");
+            PlayExplosionAnimation(positionCell);
             Destroy(gameObject);
-
-            return currentHp;
+            return oldHp;
         }
 
         public void AddScore(int outputDamage)
@@ -196,10 +126,7 @@ namespace StarLine2D.Controllers
 
         public void FlushShoots()
         {
-            foreach (var weapon in weapons)
-            {
-                weapon.ShootCell = null;
-            }
+            foreach (var w in weapons) w.ShootCell = null;
         }
 
         public void SetShipShape(ShipShape newShape)
@@ -208,53 +135,138 @@ namespace StarLine2D.Controllers
             UpdateShipCellModels();
         }
 
-        /// <summary>
-        /// Аналогично AsteroidController. Подписка на событие уничтожения
-        /// </summary>
         public ActionDisposable Subscribe(Action call)
         {
             _onDestroy += call;
-            var disposable = new ActionDisposable(() => _onDestroy -= call);
-            _trash.Retain(disposable);
-            return disposable;
+            var disp = new ActionDisposable(() => _onDestroy -= call);
+            _trash.Retain(disp);
+            return disp;
         }
 
         private void OnDestroy()
         {
-            // Сначала вызываем все подписки
             _onDestroy?.Invoke();
-            // Очищаем Disposable
-            _trash?.Dispose();
+            positionCell = null;
+            _trash.Dispose();
         }
 
-        /// <summary>
-        /// Возвращает «относительные» координаты клеток в форме корабля,
-        /// считая (0,0,0) за «головную» клетку.
-        /// Может быть полезно при проверках в PositionManager.
-        /// </summary>
-        public List<CubeCellModel> GetRelativeShapeOffsets()
+        private void UpdateShipCellModels()
         {
-            var offsets = new List<CubeCellModel>
-            {
-                new CubeCellModel(0, 0, 0) // "голова"
-            };
-
+            shipCellModels.Clear();
+            if (!positionCell) return;
+            var q = positionCell.Q;
+            var r = positionCell.R;
+            var s = positionCell.S;
+            shipCellModels.Add(new CubeCellModel(q, r, s));
             switch (shipShape)
             {
                 case ShipShape.Single:
-                    // Нет дополнительных клеток
                     break;
+                case ShipShape.HorizontalR:
+                    shipCellModels.Add(new CubeCellModel(q - 1, r, s + 1));
+                    break;
+                case ShipShape.HorizontalL:
+                    shipCellModels.Add(new CubeCellModel(q + 1, r, s - 1));
+                    break;
+            }
+            UpdateVisualPosition();
+        }
 
+        public List<CubeCellModel> GetRelativeShapeOffsets()
+        {
+            var offsets = new List<CubeCellModel> { new CubeCellModel(0, 0, 0) };
+            switch (shipShape)
+            {
+                case ShipShape.Single:
+                    break;
                 case ShipShape.HorizontalR:
                     offsets.Add(new CubeCellModel(-1, 0, 1));
                     break;
-
                 case ShipShape.HorizontalL:
                     offsets.Add(new CubeCellModel(1, 0, -1));
                     break;
             }
-
             return offsets;
+        }
+
+        private void UpdateVisualPosition()
+        {
+            if (!field) return;
+            if (shipCellModels.Count == 0) return;
+            var sum = Vector3.zero;
+            var c = 0;
+            foreach (var cell in shipCellModels
+                         .Select(model => field.FindCellByModel(model))
+                         .Where(cell => cell))
+            {
+                sum += cell.transform.position;
+                c++;
+            }
+            if (c > 0) transform.position = sum / c;
+            transform.localScale = Vector3.one;
+        }
+
+        public void PlayShotAnimation(CellController targetCell)
+        {
+            if (!shotAnimation)
+            {
+                Debug.LogWarning($"[{name}] No ShotAnimation assigned.");
+                return;
+            }
+            if (!targetCell)
+            {
+                Debug.LogWarning($"[{name}] No targetCell for shot animation.");
+                return;
+            }
+            var animGo = GameObject.Find("Animation");
+            if (!animGo) Debug.LogError($"[{name}] GameObject 'Animation' not found in scene.");
+            var animParent = animGo ? animGo.transform : null;
+            var instance = Instantiate(shotAnimation, targetCell.transform.position, Quaternion.identity, animParent);
+            instance.Play();
+            Destroy(instance.gameObject, instance.main.duration);
+        }
+
+        public void PlayExplosionAnimation(CellController targetCell)
+        {
+            if (!explosionAnimation)
+            {
+                Debug.LogWarning($"[{name}] No ExplosionAnimation assigned.");
+                return;
+            }
+            if (!targetCell)
+            {
+                Debug.LogWarning($"[{name}] No targetCell for explosion animation.");
+                return;
+            }
+            var animGo = GameObject.Find("Animation");
+            if (!animGo) Debug.LogError($"[{name}] GameObject 'Animation' not found in scene.");
+            var animParent = animGo ? animGo.transform : null;
+            var instance = Instantiate(explosionAnimation, targetCell.transform.position, Quaternion.identity, animParent);
+            instance.Play();
+            Destroy(instance.gameObject, instance.main.duration);
+        }
+
+        private List<CellController> GetShapeCells(ShipShape shape, CellController headCell)
+        {
+            var result = new List<CellController>();
+            if (!field || !headCell) return result;
+            result.Add(headCell);
+            switch (shape)
+            {
+                case ShipShape.Single:
+                    break;
+                case ShipShape.HorizontalR:
+                    var left = field.FindCellByModel(new CubeCellModel(headCell.Q - 1, headCell.R, headCell.S + 1));
+                    if (left) result.Add(left);
+                    break;
+                case ShipShape.HorizontalL:
+                    var right = field.FindCellByModel(new CubeCellModel(headCell.Q + 1, headCell.R, headCell.S - 1));
+                    if (right) result.Add(right);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(shape), shape, null);
+            }
+            return result;
         }
     }
 }

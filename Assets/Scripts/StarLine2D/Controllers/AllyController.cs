@@ -1,132 +1,95 @@
 using System.Collections.Generic;
 using System.Linq;
+using StarLine2D.Managers;
 using UnityEngine;
-using StarLine2D.Models;
 
 namespace StarLine2D.Controllers
 {
-    /// <summary>
-    /// Пример простого контроллера для союзного корабля (бота).
-    /// </summary>
     [RequireComponent(typeof(ShipController))]
     public class AllyController : MonoBehaviour
     {
         private ShipController ship;
         private FieldController field;
-        private ShipController playerShip;
 
-        /// <summary>
-        /// Инициализатор, чтобы передать ссылки на ShipController, FieldController
-        /// и при желании корабль игрока (если нужна логика слежения/защиты).
-        /// </summary>
-        public void Initialize(ShipController ship, FieldController field, ShipController playerShip)
+        public void Initialize(ShipController shipController, FieldController fieldController)
         {
-            this.ship = ship;
-            this.field = field;
-            this.playerShip = playerShip;
+            ship = shipController;
+            field = fieldController;
         }
 
-        /// <summary>
-        /// Вызываем в GameController при завершении хода,
-        /// чтобы союзник выбрал, куда перемещаться.
-        /// </summary>
         public void Move()
         {
-            if (ship == null || field == null) 
+            if (!ship || !field)
             {
-                Debug.LogWarning($"AllyController on {gameObject.name} не инициализирован!");
+                Debug.LogError($"AllyController on {gameObject.name} не инициализирован!");
                 return;
             }
 
-            // Пример: идём случайно на соседнюю клетку (радиус 1), без препятствий
             var targetCell = GetMoveCell();
-            if (targetCell != null)
-            {
-                ship.MoveCell = targetCell;
-            }
+            if (targetCell) ship.MoveCell = targetCell;
         }
 
-        /// <summary>
-        /// Выстрел в одного из врагов. Для упрощения берём ближайшего,
-        /// затем для каждого оружия выбирается случайная точка в зоне,
-        /// куда может переместиться этот противник.
-        /// </summary>
         public void Shot(List<ShipController> enemies)
         {
-            if (ship == null || field == null || enemies == null || enemies.Count == 0) 
-                return;
-
+            if (enemies.Count == 0) return;
             var closestEnemy = GetClosestEnemy(enemies);
-            if (closestEnemy == null) return;
+            if (!closestEnemy) return;
+            if (ship.Weapons.Count == 0) return;
 
-            if (ship.Weapons.Count == 0) 
-                return;
+            var potentialMoveCells = field.GetCellsInRange(
+                closestEnemy.PositionCell,
+                closestEnemy.MoveDistance
+            );
 
-            // Все клетки, куда враг может переместиться
-            var potentialMoveCells = field.GetCellsInRange(closestEnemy.PositionCell, closestEnemy.MoveDistance);
-
-            // Для каждого оружия выбираем случайную точку из potentialMoveCells,
-            // которая находится в радиусе оружия
             foreach (var weapon in ship.Weapons)
             {
                 var inRangeCells = potentialMoveCells
                     .Where(c => field.GetDistance(ship.PositionCell, c) <= weapon.Range)
                     .ToList();
 
-                if (inRangeCells.Count > 0)
-                {
-                    int randomIndex = Random.Range(0, inRangeCells.Count);
-                    var chosenCell = inRangeCells[randomIndex];
-                    weapon.ShootCell = chosenCell;
-                }
+                if (inRangeCells.Count == 0) continue;
+                var randomIndex = Random.Range(0, inRangeCells.Count);
+                var chosenCell = inRangeCells[randomIndex];
+                weapon.ShootCell = chosenCell;
             }
         }
 
-        /// <summary>
-        /// Получаем клетку для перемещения. Пример: идём случайно на одну клетку (радиус 1).
-        /// </summary>
         private CellController GetMoveCell()
         {
-            if (ship == null || ship.PositionCell == null)
-                return null;
-            if (field == null)
-                return null;
+            if (!ship.PositionCell) return null;
 
-            var neighbors = field.GetNeighbors(ship.PositionCell, 1);
-            if (neighbors.Count == 0)
-                return ship.PositionCell;
-
-            // ФИЛЬТРУЕМ препятствия
-            neighbors = neighbors
-                .Where(n => !n.HasObstacle)
-                .ToList();
-
-            if (neighbors.Count == 0)
+            var positionManager = FindObjectOfType<PositionManager>();
+            if (!positionManager)
             {
-                // Нет доступных соседей, остаёмся на месте
+                Debug.LogError("Не удалось найти PositionManager в сцене!");
                 return ship.PositionCell;
             }
 
-            var randomIndex = Random.Range(0, neighbors.Count);
-            return neighbors[randomIndex];
+            var neighbors = field.GetNeighbors(ship.PositionCell, ship.MoveDistance);
+            if (neighbors.Count == 0) return ship.PositionCell;
+
+            var freeNeighbors = neighbors.Where(c => positionManager.IsCellFree(c)).ToList();
+            if (freeNeighbors.Count == 0)
+            {
+                Debug.Log($"[AllyController] Нет свободных соседних клеток для {ship.name}.");
+                return ship.PositionCell;
+            }
+
+            var randomIndex = Random.Range(0, freeNeighbors.Count);
+            return freeNeighbors[randomIndex];
         }
 
-        /// <summary>
-        /// Находим ближайшего врага.
-        /// </summary>
         private ShipController GetClosestEnemy(List<ShipController> enemies)
         {
-            if (enemies == null || enemies.Count == 0)
-                return null;
-            if (ship == null || field == null || ship.PositionCell == null)
-                return null;
+            if (enemies == null || enemies.Count == 0) return null;
+            if (!ship.PositionCell) return null;
 
             ShipController closest = null;
             int minDist = int.MaxValue;
+
             foreach (var e in enemies)
             {
-                if (e == null || e.PositionCell == null) 
-                    continue;
+                if (!e || !e.PositionCell) continue;
                 var dist = field.GetDistance(ship.PositionCell, e.PositionCell);
                 if (dist < minDist)
                 {
@@ -134,6 +97,7 @@ namespace StarLine2D.Controllers
                     closest = e;
                 }
             }
+
             return closest;
         }
     }

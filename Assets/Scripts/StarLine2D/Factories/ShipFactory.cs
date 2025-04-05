@@ -1,20 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using StarLine2D.Controllers;
+using StarLine2D.Libraries.Garage;
+using StarLine2D.Managers;
+using StarLine2D.Utils;
 using UnityEngine;
 using Random = UnityEngine.Random;
-using StarLine2D.Components;
-using StarLine2D.Libraries.Garage;
-using StarLine2D.Models;
-using StarLine2D.Utils;
-using StarLine2D.Utils.Disposable;
 
-namespace StarLine2D.Controllers
+namespace StarLine2D.Factories
 {
     public class ShipFactory : MonoBehaviour
     {
         [SerializeField] private FieldController field;
-        [SerializeField] private ShipController playerPrefab;
+        [SerializeField] private List<ShipController> playerPrefabs = new();
+        [SerializeField] private int selectedPlayerIndex;
         [SerializeField] private int numberOfAllies = 2;
         [SerializeField] private int numberOfEnemies = 3;
 
@@ -25,115 +25,151 @@ namespace StarLine2D.Controllers
         [SerializeField] private PositionManager positionManager;
 
         private readonly List<ShipController> spawnedShips = new();
-        private bool isInitialized = false;
+        private bool isInitialized;
 
         public ShipController GetPlayerShip()
         {
-            // Удаляем «пустые» ссылки
-            spawnedShips.RemoveAll(ship => ship == null);
-            return spawnedShips.FirstOrDefault(ship => ship.GetComponent<PlayerController>() != null);
+            spawnedShips.RemoveAll(ship => !ship);
+            return spawnedShips.FirstOrDefault(ship => ship.GetComponent<PlayerController>());
         }
-        
+
         public List<ShipController> GetSpawnedShips()
         {
-            // Удаляем «пустые» ссылки
-            spawnedShips.RemoveAll(ship => ship == null);
+            spawnedShips.RemoveAll(ship => !ship);
             return spawnedShips;
         }
 
         public List<ShipController> GetAllies()
         {
-            // Удаляем «пустые» ссылки
-            spawnedShips.RemoveAll(ship => ship == null);
+            spawnedShips.RemoveAll(ship => !ship);
             return spawnedShips
-                .Where(ship => ship.GetComponent<AllyController>() != null)
+                .Where(ship => ship.GetComponent<AllyController>())
                 .ToList();
         }
 
         public List<ShipController> GetEnemies()
         {
-            // Удаляем «пустые» ссылки
-            spawnedShips.RemoveAll(ship => ship == null);
+            spawnedShips.RemoveAll(ship => !ship);
             return spawnedShips
-                .Where(ship => ship.GetComponent<EnemyController>() != null)
+                .Where(ship => ship.GetComponent<EnemyController>())
                 .ToList();
         }
 
         private void Update()
         {
             if (isInitialized) return;
-            if (CheckReadyToSpawn())
-            {
-                isInitialized = true;
-                SpawnAllShips();
-            }
+            if (!CheckReadyToSpawn()) return;
+
+            isInitialized = true;
+            SpawnAllShips();
         }
 
         private bool CheckReadyToSpawn()
         {
-            if (field == null) return false;
-            if (field.Cells == null || field.Cells.Count == 0) return false;
-            if (positionManager == null)
+            var ready = true;
+
+            if (!field)
             {
-                Debug.LogWarning($"[{name}] ShipFactory: не назначен PositionManager! Нельзя проверить форму корабля.");
-                return false;
+                Debug.LogError($"[{name}] FieldController (field) не назначен в инспекторе!");
+                ready = false;
             }
-            return true;
+            else if (field.Cells == null || field.Cells.Count == 0)
+            {
+                Debug.LogError($"[{name}] FieldController (field) не содержит клеток или список пуст!");
+                ready = false;
+            }
+
+            if (!positionManager)
+            {
+                Debug.LogError($"[{name}] PositionManager не назначен в инспекторе!");
+                ready = false;
+            }
+
+            if (playerPrefabs == null || playerPrefabs.Count == 0)
+            {
+                Debug.LogError($"[{name}] Список префабов игрока пуст или не назначен!");
+                ready = false;
+            }
+
+            if (selectedPlayerIndex < 0 || selectedPlayerIndex >= playerPrefabs.Count)
+            {
+                Debug.LogError($"[{name}] Индекс выбранного игрока ({selectedPlayerIndex}) вне диапазона!");
+                ready = false;
+            }
+
+            if (!parentShips)
+            {
+                Debug.LogError($"[{name}] Родительский Transform для кораблей (parentShips) не назначен!");
+                ready = false;
+            }
+
+            return ready;
         }
 
         private void SpawnAllShips()
         {
-            Debug.Log($"[{name}] ShipFactory: начинаем спавн кораблей.");
+            SpawnPlayerShip();
+            SpawnAllies();
+            SpawnEnemies();
+        }
 
-            if (playerPrefab == null)
+        private void SpawnPlayerShip()
+        {
+            var selectedPrefab = playerPrefabs[selectedPlayerIndex];
+            if (!selectedPrefab)
             {
-                Debug.LogWarning($"{name}: Префаб игрока не задан!");
+                Debug.LogError($"[{name}] Префаб игрока с индексом {selectedPlayerIndex} не задан.");
                 return;
             }
 
-            // --- Спавн игрока ---
-            SpawnOneShip(playerPrefab, ShipSide.Player);
-
-            // --- Спавн союзников ---
-            for (int i = 0; i < numberOfAllies; i++)
-            {
-                // Берём случайный префаб союзного корабля
-                var allyPrefab = GarageLibrary.I.GetRandom(GarageItem.ShipType.Ally).Prefab;
-                SpawnOneShip(allyPrefab, ShipSide.Ally);
-            }
-
-            // --- Спавн врагов ---
-            for (int i = 0; i < numberOfEnemies; i++)
-            {
-                // Берём случайный префаб вражеского корабля
-                var enemyPrefab = GarageLibrary.I.GetRandom(GarageItem.ShipType.Enemy).Prefab;
-                SpawnOneShip(enemyPrefab, ShipSide.Enemy);
-            }
-
-            Debug.Log($"[{name}] Успешно заспавнено {spawnedShips.Count} кораблей.");
+            SpawnOneShip(selectedPrefab, ShipSide.Player);
         }
 
-        /// <summary>
-        /// Вспомогательный метод, который спавнит один корабль (игрок, союзник или враг),
-        /// с учётом того, что корабль может занимать две клетки.
-        /// </summary>
+        private void SpawnAllies()
+        {
+            for (var i = 0; i < numberOfAllies; i++)
+            {
+                var allyItem = GarageLibrary.I.GetRandom(GarageItem.ShipType.Ally);
+                if (allyItem == null || !allyItem.Prefab)
+                {
+                    Debug.LogError($"[{name}] Не удалось получить префаб союзника из GarageLibrary!");
+                    continue;
+                }
+
+                SpawnOneShip(allyItem.Prefab, ShipSide.Ally);
+            }
+        }
+
+        private void SpawnEnemies()
+        {
+            for (var i = 0; i < numberOfEnemies; i++)
+            {
+                var enemyItem = GarageLibrary.I.GetRandom(GarageItem.ShipType.Enemy);
+                if (enemyItem == null || !enemyItem.Prefab)
+                {
+                    Debug.LogError($"[{name}] Не удалось получить префаб врага из GarageLibrary!");
+                    continue;
+                }
+
+                SpawnOneShip(enemyItem.Prefab, ShipSide.Enemy);
+            }
+        }
+
         private void SpawnOneShip(ShipController prefab, ShipSide side)
         {
-            if (prefab == null)
+            if (!prefab)
             {
                 Debug.LogError($"[{name}] Не задан префаб корабля для {side}!");
                 return;
             }
 
-            // 1) Сначала создаём объект (пока ставим позицию (0,0,0))
             var instance = Instantiate(prefab, Vector3.zero, Quaternion.identity, parentShips);
             var shipCtrl = instance.GetComponent<ShipController>();
-            if (shipCtrl == null)
+            if (!shipCtrl)
             {
                 shipCtrl = instance.gameObject.AddComponent<ShipController>();
             }
 
-            // 2) С помощью PositionManager ищем все валидные клетки для «головной» клетки этого корабля.
             var possibleCells = positionManager.GetValidHeadCellsForShip(shipCtrl);
             if (possibleCells == null || possibleCells.Count == 0)
             {
@@ -142,52 +178,35 @@ namespace StarLine2D.Controllers
                 return;
             }
 
-            // 3) Случайно выбираем одну из валидных клеток
             var chosenCell = possibleCells[Random.Range(0, possibleCells.Count)];
 
-            // 4) Ставим корабль в эту клетку
             instance.transform.position = chosenCell.transform.position;
             shipCtrl.PositionCell = chosenCell;
 
-            // 5) Дополнительные действия инициализации в зависимости от типа корабля
             switch (side)
             {
                 case ShipSide.Player:
                 {
-                    var playerCtrl = instance.GetComponent<PlayerController>();
-                    if (playerCtrl == null)
-                    {
-                        playerCtrl = instance.gameObject.AddComponent<PlayerController>();
-                    }
+                    var playerCtrl = instance.gameObject.AddComponent<PlayerController>();
                     playerCtrl.Initialize(shipCtrl);
                     break;
                 }
                 case ShipSide.Ally:
                 {
-                    var allyCtrl = instance.GetComponent<AllyController>();
-                    if (allyCtrl == null)
-                    {
-                        allyCtrl = instance.gameObject.AddComponent<AllyController>();
-                    }
-                    // Предположим, что союзникам нужно знать поле и корабль-игрок.
-                    // Для упрощения возьмём первый попавшийся корабль игрока из списка.
-                    var playerShip = GetPlayerShip();
-                    allyCtrl.Initialize(shipCtrl, field, playerShip);
+                    var allyCtrl = instance.gameObject.AddComponent<AllyController>();
+                    allyCtrl.Initialize(shipCtrl, field);
                     break;
                 }
                 case ShipSide.Enemy:
                 {
-                    var enemyCtrl = instance.GetComponent<EnemyController>();
-                    if (enemyCtrl == null)
-                    {
-                        enemyCtrl = instance.gameObject.AddComponent<EnemyController>();
-                    }
+                    var enemyCtrl = instance.gameObject.AddComponent<EnemyController>();
                     enemyCtrl.Initialize(shipCtrl, field);
                     break;
                 }
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(side), side, null);
             }
 
-            // 6) Подписываемся на уничтожение, чтобы убрать его из списка
             shipCtrl.Subscribe(() => spawnedShips.Remove(shipCtrl));
             spawnedShips.Add(shipCtrl);
         }

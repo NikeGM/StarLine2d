@@ -1,5 +1,7 @@
 using System.Collections;
+using System.Linq;
 using StarLine2D.Controllers;
+using StarLine2D.Factories;
 using UnityEngine;
 
 namespace StarLine2D.Managers
@@ -12,85 +14,90 @@ namespace StarLine2D.Managers
         [SerializeField] private FieldController fieldController;
         [SerializeField] private ShipFactory shipFactory;
 
+        private void Awake()
+        {
+            if (!movement) Debug.LogError($"[{name}] MovementManager не назначен.");
+            if (!attack) Debug.LogError($"[{name}] AttackManager не назначен.");
+            if (!collision) Debug.LogError($"[{name}] CollisionManager не назначен.");
+            if (!fieldController) Debug.LogError($"[{name}] FieldController не назначен.");
+            if (!shipFactory) Debug.LogError($"[{name}] ShipFactory не назначен.");
+        }
+
         public IEnumerator TurnFinished()
-{
-    Debug.Log("=== TurnFinished() START ===");
-
-    // 1) Ход врагов
-    var enemyShips = shipFactory.GetEnemies();
-    var playerShip = shipFactory.GetPlayerShip();
-    Debug.Log($"Enemies count: {enemyShips.Count}. Player found? {(playerShip ? "Yes" : "No")}");
-
-    foreach (var eship in enemyShips)
-    {
-        var eCtrl = eship.GetComponent<EnemyController>();
-        if (eCtrl)
         {
-            Debug.Log($"Enemy [{eship.name}] move and shot...");
-            eCtrl.Move();
-            eCtrl.Shot(playerShip);
+            Debug.Log("=== TurnFinished() START ===");
+            var enemyShips = shipFactory.GetEnemies();
+            var playerShip = shipFactory.GetPlayerShip();
+            Debug.Log($"Enemies count: {enemyShips.Count}. Player found? {(playerShip ? "Yes" : "No")}");
+
+            foreach (var eship in enemyShips)
+            {
+                var eCtrl = eship.GetComponent<EnemyController>();
+                if (eCtrl)
+                {
+                    Debug.Log($"Enemy [{eship.name}] move and shot...");
+                    eCtrl.Move();
+                    eCtrl.Shot(playerShip);
+                }
+            }
+
+            var allyShips = shipFactory.GetAllies();
+            Debug.Log($"Allies count: {allyShips.Count}");
+            foreach (var aShip in allyShips)
+            {
+                var aCtrl = aShip.GetComponent<AllyController>();
+                if (aCtrl)
+                {
+                    Debug.Log($"Ally [{aShip.name}] move and shot...");
+                    aCtrl.Move();
+                    var enemiesForAllies = shipFactory.GetEnemies();
+                    aCtrl.Shot(enemiesForAllies);
+                }
+            }
+
+            if (movement)
+            {
+                Debug.Log("MovementManager: MoveAllShipsAndAsteroids...");
+                yield return StartCoroutine(movement.MoveAllShipsAndAsteroids());
+            }
+
+            if (attack)
+            {
+                Debug.Log("=== Attack phase ===");
+                var allShips = shipFactory.GetSpawnedShips();
+                foreach (var s in allShips.Where(s => s))
+                {
+                    Debug.Log($"AttackManager: Shot(...) for ship: {s.name}");
+                    attack.Shot(s);
+                }
+            }
+
+            if (collision)
+            {
+                Debug.Log("Collision: CollectPotentialCollisions()...");
+                collision.CollectPotentialCollisions();
+
+                Debug.Log("Collision: ProcessCollisions()...");
+                collision.ProcessCollisions();
+
+                Debug.Log("Collision: CheckShipCollisions...");
+                collision.CheckShipCollisions();
+
+                collision.CleanupAsteroids();
+                collision.CleanupShips();
+            }
+
+            Debug.Log("Clear static cells in CellStateManager...");
+            var cellsStateManager = fieldController.CellStateManager;
+            cellsStateManager.ClearStaticCells();
+
+            if (playerShip)
+            {
+                Debug.Log("Reset player MoveCell...");
+                playerShip.MoveCell = null;
+            }
+
+            Debug.Log("=== TurnFinished() END ===");
         }
-    }
-
-    // 2) Ход союзников
-    var allyShips = shipFactory.GetAllies();
-    Debug.Log($"Allies count: {allyShips.Count}");
-    foreach (var aShip in allyShips)
-    {
-        var aCtrl = aShip.GetComponent<AllyController>();
-        if (aCtrl)
-        {
-            Debug.Log($"Ally [{aShip.name}] move and shot...");
-            aCtrl.Move();
-            var enemiesForAllies = shipFactory.GetEnemies();
-            aCtrl.Shot(enemiesForAllies);
-        }
-    }
-
-    // 3) Движение (корутина MovementManager)
-    if (movement)
-    {
-        Debug.Log("MovementManager: MoveAllShipsAndAsteroids...");
-        yield return StartCoroutine(movement.MoveAllShipsAndAsteroids());
-    }
-
-    // 4) Атака для всех кораблей
-    if (attack)
-    {
-        Debug.Log("=== Attack phase: calling AttackManager.Shot(...) for each ship ===");
-        var allShips = shipFactory.GetSpawnedShips();
-        foreach (var s in allShips)
-        {
-            if (!s) continue;
-            Debug.Log($"Calling Shot for ship: {s.name}");
-            attack.Shot(s);
-        }
-    }
-
-    // 5) Проверяем коллизии
-    if (collision)
-    {
-        Debug.Log("Collision: CheckShipCollisions...");
-        collision.CheckShipCollisions();
-
-        Debug.Log("Collision: CleanupAsteroids & CleanupShips...");
-        collision.CleanupAsteroids();
-        collision.CleanupShips();
-    }
-
-    // 6) Сбрасываем статику подсветки клеток
-    Debug.Log("Clear static cells in CellStateManager...");
-    var cellsStateManager = fieldController.CellStateManager;
-    cellsStateManager.ClearStaticCells();
-
-    if (playerShip != null)
-    {
-        Debug.Log("Reset player MoveCell...");
-        playerShip.MoveCell = null;
-    }
-
-    Debug.Log("=== TurnFinished() END ===");
-}
-
     }
 }

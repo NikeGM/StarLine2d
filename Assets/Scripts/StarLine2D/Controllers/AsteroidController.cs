@@ -1,10 +1,12 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using StarLine2D.Factories;
 using StarLine2D.Models;
 using StarLine2D.Utils.Disposable;
 using UnityEngine.Events;
+using StarLine2D.Managers;
 
 namespace StarLine2D.Controllers
 {
@@ -14,11 +16,12 @@ namespace StarLine2D.Controllers
         Small
     }
 
-    public class AsteroidController : MonoBehaviour
+    public class AsteroidController : MonoBehaviour, ICollisionParticipant
     {
+        private static readonly int Destroy1 = Animator.StringToHash("Destroy");
         [SerializeField] private AsteroidSize size = AsteroidSize.Big;
         [SerializeField] private int hp = 10;
-        [SerializeField] private float mass = 1f;
+        [SerializeField] private float asteroidMass = 1f;
         [SerializeField] private CellController positionCell;
         [SerializeField] private CubeCellModel direction;
         [SerializeField] private bool rotateClockwise = true;
@@ -26,20 +29,45 @@ namespace StarLine2D.Controllers
         [SerializeField] private Transform arrowRoot;
         [SerializeField] private ParticleSystem destroyParticles;
         [SerializeField] private Animator animator;
-        
         [SerializeField] private UnityEvent onDestroy;
-        
+
+        private CellController oldCell;
         private Action _onDestroy;
-        private CompositeDisposable _trash = new();
-        
+        private readonly CompositeDisposable _trash = new CompositeDisposable();
         private bool isDestroying;
+
+        public IEnumerable<CellController> DesiredCells
+        {
+            get
+            {
+                if (positionCell != null) yield return positionCell;
+            }
+        }
+
+        public float Mass => asteroidMass;
+        public bool IsObstacle => false;
+
+        public CellController PositionCell
+        {
+            get => positionCell;
+            set => positionCell = value;
+        }
+
+        public int OnDamage(int dmg)
+        {
+            if (isDestroying) return 0;
+            var oldHp = hp;
+            hp -= dmg;
+            if (hp > 0) return dmg;
+            StartCoroutine(DestroyByWeapon());
+            return oldHp;
+        }
 
         public AsteroidSize Size => size;
         public int Hp => hp;
-        public float Mass => mass;
-        public CellController PositionCell => positionCell;
         public CubeCellModel Direction => direction;
         public bool RotateClockwise => rotateClockwise;
+        public CellController OldCell => oldCell;
 
         private void Awake()
         {
@@ -55,30 +83,62 @@ namespace StarLine2D.Controllers
             }
         }
 
-        public void Initialize(AsteroidSize newSize, int newHp, float newMass, CellController newCell, CubeCellModel newDirection)
+        public void Initialize(
+            AsteroidSize newSize,
+            int newHp,
+            float newMass,
+            CellController newCell,
+            CubeCellModel newDirection
+        )
         {
             size = newSize;
             hp = newHp;
-            mass = newMass;
+            asteroidMass = newMass;
             positionCell = newCell;
             direction = newDirection;
-            if (positionCell != null)
+            if (positionCell) transform.position = positionCell.transform.position;
+            var field = FindObjectOfType<FieldController>();
+            if (!field)
             {
-                transform.position = positionCell.transform.position;
+                Debug.LogError("[AsteroidController] FieldController not found in scene.");
+                return;
+            }
+            if (!positionCell || direction == null) return;
+            var nextQ = positionCell.Q + direction.Q;
+            var nextR = positionCell.R + direction.R;
+            var nextS = positionCell.S + direction.S;
+            var nextCell = field.FindCellByModel(new CubeCellModel(nextQ, nextR, nextS));
+            if (nextCell)
+            {
+                UpdateArrowDirection(positionCell.transform.position, nextCell.transform.position);
+            }
+            else
+            {
+                var fromPos = positionCell.transform.position;
+                var fallbackDir = new Vector3(direction.Q, direction.R, 0f);
+                if (fallbackDir.sqrMagnitude < 0.001f)
+                {
+                    if (arrowRoot) arrowRoot.gameObject.SetActive(false);
+                }
+                else
+                {
+                    var fallbackPos = fromPos + fallbackDir.normalized * 1f;
+                    UpdateArrowDirection(fromPos, fallbackPos);
+                }
             }
         }
 
-        public int OnDamage(int damage)
+        public void StorePreviousCell(CellController cell)
         {
-            if (isDestroying) return 0;
-            int currentHp = hp;
-            hp -= damage;
-            if (hp <= 0)
-            {
-                StartCoroutine(DestroyByWeapon());
-                return currentHp;
-            }
-            return damage;
+            oldCell = cell;
+        }
+
+        public void RevertToOldCellAndReverseDirection()
+        {
+            if (!oldCell) return;
+            positionCell = oldCell;
+            direction = new CubeCellModel(-direction.Q, -direction.R, -direction.S);
+            rotateClockwise = !rotateClockwise;
         }
 
         private IEnumerator DestroyByWeapon()
@@ -88,21 +148,16 @@ namespace StarLine2D.Controllers
             if (arrowRoot) arrowRoot.gameObject.SetActive(false);
             if (animator)
             {
-                animator.SetTrigger("Destroy");
+                animator.SetTrigger(Destroy1);
                 yield return new WaitForSeconds(1f);
             }
-            
-            // Ищем в сцене объект "Animation" для родителя частиц
-            Transform animParent = null;
-            var animGo = GameObject.Find("Animation");
-            if (animGo != null)
+            if (destroyParticles)
             {
-                animParent = animGo.transform;
-            }
-
-            if (destroyParticles != null)
-            {
-                var particles = Instantiate(destroyParticles, transform.position, Quaternion.identity, animParent);
+                var cellForExplosion = oldCell ?? positionCell;
+                var animGo = GameObject.Find("Animation");
+                if (!animGo) Debug.LogError("[AsteroidController] GameObject 'Animation' not found in scene.");
+                var animParent = animGo ? animGo.transform : null;
+                var particles = Instantiate(destroyParticles, cellForExplosion.transform.position, Quaternion.identity, animParent);
                 particles.Play();
                 var main = particles.main;
                 yield return new WaitForSeconds(main.duration);
@@ -110,7 +165,15 @@ namespace StarLine2D.Controllers
             if (size == AsteroidSize.Big)
             {
                 var factory = FindObjectOfType<AsteroidFactory>();
-                if (factory) factory.SpawnSmallAsteroids(this);
+                if (!factory) Debug.LogError("[AsteroidController] AsteroidFactory not found in scene.");
+                if (factory)
+                {
+                    var spawnCell = oldCell ?? positionCell;
+                    var backup = positionCell;
+                    positionCell = spawnCell;
+                    factory.SpawnSmallAsteroids(this);
+                    positionCell = backup;
+                }
             }
             Destroy(gameObject);
         }
@@ -121,7 +184,13 @@ namespace StarLine2D.Controllers
             if (asteroidSpriteTransform) asteroidSpriteTransform.rotation = rot;
         }
 
-        public IEnumerator UpdateTransformSmooth(Vector3 startPos, Vector3 endPos, Quaternion startRot, Quaternion endRot, float duration)
+        public IEnumerator UpdateTransformSmooth(
+            Vector3 startPos,
+            Vector3 endPos,
+            Quaternion startRot,
+            Quaternion endRot,
+            float duration
+        )
         {
             float elapsed = 0f;
             while (elapsed < duration)
@@ -147,7 +216,7 @@ namespace StarLine2D.Controllers
         public void UpdateArrowDirection(Vector3 fromPos, Vector3 toPos)
         {
             if (!arrowRoot) return;
-            var dir = (toPos - fromPos);
+            var dir = toPos - fromPos;
             if (dir.sqrMagnitude < 0.001f)
             {
                 arrowRoot.gameObject.SetActive(false);
@@ -158,13 +227,12 @@ namespace StarLine2D.Controllers
             float arrowAngle = baseAngle - 90f;
             arrowRoot.rotation = Quaternion.Euler(0, 0, arrowAngle);
         }
-        
+
         public ActionDisposable Subscribe(Action call)
         {
             _onDestroy += call;
             var disposable = new ActionDisposable(() => _onDestroy -= call);
             _trash.Retain(disposable);
-            
             return disposable;
         }
 
@@ -172,9 +240,8 @@ namespace StarLine2D.Controllers
         {
             _onDestroy?.Invoke();
             onDestroy?.Invoke();
-            
-            _trash?.Dispose();
+            positionCell = null;
+            _trash.Dispose();
         }
-        
     }
 }

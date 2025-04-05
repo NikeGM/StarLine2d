@@ -1,105 +1,95 @@
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 using StarLine2D.Controllers;
 using StarLine2D.Factories;
 using StarLine2D.Models;
+using UnityEngine;
 
-namespace StarLine2D.Utils
+namespace StarLine2D.Managers
 {
-    /// <summary>
-    /// Менеджер позиций (через Inspector задаём ссылки на фабрики и поле).
-    /// Позволяет находить клетки, куда можно поставить объект определённой формы
-    /// (учитывая препятствия, астероиды, другие корабли и границы поля).
-    /// </summary>
     public class PositionManager : MonoBehaviour
     {
-        [Header("Зависимости (указать в Inspector)")]
         [SerializeField] private FieldController field;
         [SerializeField] private AsteroidFactory asteroidFactory;
         [SerializeField] private ObstacleFactory obstacleFactory;
         [SerializeField] private ShipFactory shipFactory;
 
-        /// <summary>
-        /// Возвращает список клеток, которые могут служить "головой" корабля, учитывая его форму.
-        /// В расчёт берутся:
-        /// - краевые клетки (если для формы не хватает места, клетка не подходит)
-        /// - препятствия
-        /// - астероиды
-        /// - другие корабли (ShipCellModels)
-        /// </summary>
-        /// <param name="ship">Корабль (или шаблон корабля), у которого берём форму (ShipShape).</param>
-        /// <returns>Список свободных клеток для «головы» такого корабля.</returns>
-        public List<CellController> GetValidHeadCellsForShip(ShipController ship)
+        private void Awake()
         {
-            // Получаем живые объекты в сцене
-            var obstacles = obstacleFactory.GetSpawnedObstacles();  // препятствия
-            var asteroids = asteroidFactory.GetSpawnedAsteroids();  // астероиды
-            var allShips = shipFactory.GetSpawnedShips();           // все корабли
+            if (!field) Debug.LogError($"[{name}] FieldController не назначен в PositionManager.");
+            if (!asteroidFactory) Debug.LogError($"[{name}] AsteroidFactory не назначен в PositionManager.");
+            if (!obstacleFactory) Debug.LogError($"[{name}] ObstacleFactory не назначен в PositionManager.");
+            if (!shipFactory) Debug.LogError($"[{name}] ShipFactory не назначен в PositionManager.");
+        }
 
+        public bool IsCellFree(CellController cell)
+        {
+            if (!cell) return false;
+            var obstacles = obstacleFactory.GetSpawnedObstacles();
+            var asteroids = asteroidFactory.GetSpawnedAsteroids();
+            var allShips = shipFactory.GetSpawnedShips();
+            if (obstacles.Any(o => o.PositionCell == cell)) return false;
+            if (asteroids.Any(a => a.PositionCell == cell)) return false;
+            if (allShips.Any(s => s && s.ShipCellModels.Any(m => m.Q == cell.Q && m.R == cell.R && m.S == cell.S))) return false;
+            return true;
+        }
+
+        public List<CellController> GetValidHeadCellsForShip(ShipController ship = null)
+        {
             var result = new List<CellController>();
             var allCells = field.Cells;
-
-            // Извлекаем относительные смещения формы (GetRelativeShapeOffsets — теперь в ShipController)
-            var shapeOffsets = ship.GetRelativeShapeOffsets();
-
-            // Перебираем все клетки поля как потенциальную "голову"
+            var obstacles = obstacleFactory.GetSpawnedObstacles();
+            var asteroids = asteroidFactory.GetSpawnedAsteroids();
+            var allShips = shipFactory.GetSpawnedShips();
             foreach (var candidateCell in allCells)
             {
-                bool canPlaceHere = true;
-
-                // Проверяем каждую клетку формы
-                foreach (var offset in shapeOffsets)
-                {
-                    // Вычисляем координаты ячейки формы
-                    int newQ = candidateCell.Q + offset.Q;
-                    int newR = candidateCell.R + offset.R;
-                    int newS = candidateCell.S + offset.S;
-
-                    // Ищем клетку на поле
-                    var shapeCell = field.FindCellByModel(new CubeCellModel(newQ, newR, newS));
-
-                    // Если такой клетки нет — выходим за границы
-                    if (shapeCell == null)
-                    {
-                        canPlaceHere = false;
-                        break;
-                    }
-
-                    // 1) Проверяем препятствия
-                    if (shapeCell.HasObstacle)
-                    {
-                        canPlaceHere = false;
-                        break;
-                    }
-
-                    // 2) Проверяем астероиды (сравниваем с PositionCell)
-                    if (asteroids.Any(a => a.PositionCell == shapeCell))
-                    {
-                        canPlaceHere = false;
-                        break;
-                    }
-
-                    // 3) Проверяем другие корабли
-                    //    Если "ship" уже в сцене, и мы просто хотим найти клетки для его перемещения,
-                    //    то можно исключить из проверки сам ship (чтобы не мешал себе).
-                    //    Но здесь будем считать, что сравниваем со всеми.
-                    if (allShips.Any(s =>
-                        s != null &&
-                        s.ShipCellModels.Any(cellModel =>
-                            cellModel.Q == newQ && cellModel.R == newR && cellModel.S == newS)))
-                    {
-                        canPlaceHere = false;
-                        break;
-                    }
-                }
-
-                if (canPlaceHere)
+                if (!IsCellFree(candidateCell)) continue;
+                if (ship == null)
                 {
                     result.Add(candidateCell);
+                    continue;
                 }
+                var shapeOffsets = ship.GetRelativeShapeOffsets();
+                var canPlaceHere = true;
+                foreach (var offset in shapeOffsets)
+                {
+                    var newQ = candidateCell.Q + offset.Q;
+                    var newR = candidateCell.R + offset.R;
+                    var newS = candidateCell.S + offset.S;
+                    var shapeCell = field.FindCellByModel(new CubeCellModel(newQ, newR, newS));
+                    if (!shapeCell) { canPlaceHere = false; break; }
+                    if (!IsCellFree(shapeCell))
+                    {
+                        canPlaceHere = false;
+                        break;
+                    }
+                }
+                if (canPlaceHere) result.Add(candidateCell);
             }
+            return result;
+        }
 
+        public List<CellController> GetValidCellsForAsteroid()
+        {
+            var result = new List<CellController>();
+            var allCells = field.Cells;
+            foreach (var cell in allCells)
+            {
+                if (!IsCellFree(cell)) continue;
+                result.Add(cell);
+            }
+            return result;
+        }
+
+        public List<CellController> GetValidCellsForObstacle()
+        {
+            var result = new List<CellController>();
+            var allCells = field.Cells;
+            foreach (var cell in allCells)
+            {
+                if (!IsCellFree(cell)) continue;
+                result.Add(cell);
+            }
             return result;
         }
     }
