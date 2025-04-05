@@ -1650,6 +1650,7 @@ MonoBehaviour:
   fieldController: {fileID: 1677296064}
   cellsStateManager: {fileID: 1962180701}
   shipFactory: {fileID: 315215967}
+  positionManager: {fileID: 1053015821}
 --- !u!1001 &89289851
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4129,6 +4130,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   shipFactory: {fileID: 315215967}
+  asteroidFactory: {fileID: 430448331}
+  obstacleFactory: {fileID: 903537776}
+  field: {fileID: 1677296064}
 --- !u!1001 &235081596
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5424,7 +5428,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   field: {fileID: 1677296064}
-  playerPrefab: {fileID: 6313968542848542829, guid: 2bd5eeeaa680742c18a17eea7ffed409, type: 3}
+  playerPrefabs:
+  - {fileID: 6313968542848542829, guid: 75db12a5259484192b4c00383a97d88d, type: 3}
+  - {fileID: 6313968542848542829, guid: 2bd5eeeaa680742c18a17eea7ffed409, type: 3}
+  selectedPlayerIndex: 0
   numberOfAllies: 0
   numberOfEnemies: 1
   parentShips: {fileID: 612398735}
@@ -7589,6 +7596,8 @@ MonoBehaviour:
   minAsteroidMass: 0.5
   maxAsteroidMass: 3
   parentAsteroids: {fileID: 338104118}
+  shipFactory: {fileID: 315215967}
+  positionManager: {fileID: 1053015821}
 --- !u!1001 &430949856
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -14121,6 +14130,7 @@ MonoBehaviour:
   - prefab: {fileID: 8457788082549557393, guid: 3f93d52c37d9e430cbe94a1f2afbeb32, type: 3}
   numberOfObstacles: 60
   parentObstacles: {fileID: 564030082}
+  positionManager: {fileID: 1053015821}
 --- !u!1001 &921246663
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -29500,8 +29510,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d643ef6c59664c58abe5e198aef742cf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _fieldController: {fileID: 1677296064}
-  _shipFactory: {fileID: 315215967}
+  fieldController: {fileID: 1677296064}
+  shipFactory: {fileID: 315215967}
+  positionManager: {fileID: 1053015821}
 --- !u!4 &1962180702
 Transform:
   m_ObjectHideFlags: 0

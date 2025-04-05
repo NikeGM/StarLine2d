@@ -131,6 +131,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa1f7459ceb2249b6a536e0cb46ae5d7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  shotAnimation: {fileID: 6570423635053424486, guid: fc65de4aa10494837873fdd3ad06eb7f, type: 3}
+  explosionAnimation: {fileID: 6570423635053424486, guid: 1b2fc406b3d8348d7ab083de297087d6, type: 3}
+  mass: 1
   health:
     value: 100
   score:
