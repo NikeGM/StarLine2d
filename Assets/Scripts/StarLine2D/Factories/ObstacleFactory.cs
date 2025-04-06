@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using StarLine2D.Controllers;
 using StarLine2D.Managers;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 namespace StarLine2D.Factories
 {
@@ -48,7 +47,7 @@ namespace StarLine2D.Factories
             var allCells = positionManager.GetValidCellsForObstacle();
             if (allCells.Count == 0 || prefabs.Count == 0) return;
 
-            Shuffle(allCells);
+            Utils.Utils.Shuffle(allCells);
             int created = 0;
             for (int i = 0; i < allCells.Count && created < numberOfObstacles; i++)
             {
@@ -60,15 +59,6 @@ namespace StarLine2D.Factories
                 ctrl.Subscribe(() => _spawnedObstacles.Remove(ctrl));
                 _spawnedObstacles.Add(ctrl);
                 created++;
-            }
-        }
-
-        private static void Shuffle<T>(List<T> list)
-        {
-            for (int i = list.Count - 1; i > 0; i--)
-            {
-                int r = Random.Range(0, i + 1);
-                (list[i], list[r]) = (list[r], list[i]);
             }
         }
     }

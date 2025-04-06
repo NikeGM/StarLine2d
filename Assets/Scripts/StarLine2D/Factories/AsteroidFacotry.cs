@@ -83,6 +83,8 @@ namespace StarLine2D.Factories
             }
 
             var freeCells = positionManager.GetValidCellsForAsteroid();
+
+            Utils.Utils.Shuffle(freeCells);
             if (freeCells.Count == 0)
             {
                 Debug.LogWarning($"[{name}] Нет свободных клеток для спавна астероидов.");
@@ -93,8 +95,11 @@ namespace StarLine2D.Factories
             for (var i = 0; i < spawnCount; i++)
             {
                 var cell = freeCells[i];
-                var asteroidGo = Instantiate(bigAsteroidPrefab, cell.transform.position, Quaternion.identity, parentAsteroids);
-                var asteroidCtrl = asteroidGo.GetComponent<AsteroidController>() ?? asteroidGo.AddComponent<AsteroidController>();
+
+                var asteroidGo = Instantiate(bigAsteroidPrefab, cell.transform.position, Quaternion.identity,
+                    parentAsteroids);
+                var asteroidCtrl = asteroidGo.GetComponent<AsteroidController>() ??
+                                   asteroidGo.AddComponent<AsteroidController>();
 
                 var randomHp = Random.Range(minAsteroidHp, maxAsteroidHp + 1);
                 var randomMass = Random.Range(minAsteroidMass, maxAsteroidMass);
@@ -153,8 +158,10 @@ namespace StarLine2D.Factories
                     cell.S - bigAsteroid.PositionCell.S
                 );
 
-                var smallGo = Instantiate(smallAsteroidPrefab, cell.transform.position, Quaternion.identity, parentAsteroids);
-                var smallCtrl = smallGo.GetComponent<AsteroidController>() ?? smallGo.AddComponent<AsteroidController>();
+                var smallGo = Instantiate(smallAsteroidPrefab, cell.transform.position, Quaternion.identity,
+                    parentAsteroids);
+                var smallCtrl = smallGo.GetComponent<AsteroidController>() ??
+                                smallGo.AddComponent<AsteroidController>();
 
                 var smallHp = Mathf.Max(1, bigAsteroid.Hp / 10);
                 var smallMass = Mathf.Max(0.1f, bigAsteroid.Mass / 10f);
