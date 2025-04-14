@@ -30,7 +30,7 @@ namespace StarLine2D.Controllers
         private TextMeshPro _text;
         private bool _initialized = false;
 
-        // >>> Новое: препятствие <<<
+        // Препятствие:
         private ObstacleController _obstacle;
         public bool HasObstacle => _obstacle != null;
 
@@ -62,6 +62,8 @@ namespace StarLine2D.Controllers
 
         public void ShotAnimation()
         {
+            Debug.Log(
+                $"Cell[{name}] ShotAnimation() called. shotAnimation={(shotAnimation ? shotAnimation.name : "null")}");
             PlayAnimation(shotAnimation);
         }
 
@@ -72,13 +74,25 @@ namespace StarLine2D.Controllers
 
         private void PlayAnimation(ParticleSystem particleAnimation)
         {
-            if (particleAnimation is null) return;
-            var instance = Instantiate(particleAnimation, transform.position, Quaternion.identity) as ParticleSystem;
+            if (particleAnimation is null)
+            {
+                Debug.LogWarning($"No ParticleSystem assigned for cell [{name}]!");
+                return;
+            }
 
-            instance.transform.SetParent(transform);
+            // Ищем в сцене объект "Animation" для родителя частиц
+            Transform animParent = null;
+            var animGo = GameObject.Find("Animation");
+            if (animGo != null)
+            {
+                animParent = animGo.transform;
+            }
+
+            Debug.Log($"Instantiate particle [{particleAnimation.name}] at cell [{name}]");
+            var instance = Instantiate(particleAnimation, transform.position, Quaternion.identity, animParent);
             instance.Play();
 
-            Destroy(instance.gameObject, instance.main.duration);
+            // Destroy(instance.gameObject, instance.main.duration);
         }
 
         private void Update()
@@ -88,7 +102,7 @@ namespace StarLine2D.Controllers
             _text.enabled = debugEnabled;
         }
 
-        // >>> Новое: назначить препятствие <<<
+        // Назначить препятствие
         public void SetObstacle(ObstacleController obstacle)
         {
             _obstacle = obstacle;

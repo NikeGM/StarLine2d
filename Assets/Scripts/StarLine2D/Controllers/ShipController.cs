@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using StarLine2D.Models;
 using StarLine2D.Utils.Observables;
+using StarLine2D.Utils.Disposable;
 
 namespace StarLine2D.Controllers
 {
@@ -37,6 +38,10 @@ namespace StarLine2D.Controllers
 
     public class ShipController : MonoBehaviour
     {
+        // Убираем [SerializeField], чтобы поле не задавалось через инспектор
+        private FieldController field;
+
+        [Header("Настройки корабля")]
         [SerializeField] private IntObservableProperty health;
         [SerializeField] private IntObservableProperty score;
         [SerializeField] private MoveController moveController;
@@ -45,15 +50,16 @@ namespace StarLine2D.Controllers
         [SerializeField] private List<Weapon> weapons = new();
         [SerializeField] private ShipShape shipShape = ShipShape.Single;
 
-        // "Головная" клетка корабля
         [SerializeField] private CellController positionCell;
 
         // Список моделей клеток (CubeCellModel) для вычислений формы
         private readonly List<CubeCellModel> shipCellModels = new();
 
+        private Action _onDestroy;
+        private CompositeDisposable _trash = new();
+
         public CellController MoveCell { get; set; }
 
-        // Убрали isPlayer — теперь тип корабля определяем по контроллерам (Player/Ally/Enemy)
         public IntObservableProperty Health => health;
         public IntObservableProperty Score => score;
         public int MaxHealth => maxHealth;
@@ -73,11 +79,17 @@ namespace StarLine2D.Controllers
             }
         }
 
-        // Список CubeCellModel для внешнего доступа (GameController)
         public List<CubeCellModel> ShipCellModels => shipCellModels;
 
         private void Awake()
         {
+            // Пытаемся найти FieldController на сцене
+            field = FindObjectOfType<FieldController>();
+            if (!field)
+            {
+                Debug.LogWarning($"[{name}] ShipController: FieldController не найден на сцене!");
+            }
+
             OnValidate();
         }
 
@@ -89,6 +101,9 @@ namespace StarLine2D.Controllers
             UpdateShipCellModels();
         }
 
+        /// <summary>
+        /// Формируем список занимаемых клеток и обновляем визуальную позицию
+        /// </summary>
         private void UpdateShipCellModels()
         {
             shipCellModels.Clear();
@@ -98,13 +113,14 @@ namespace StarLine2D.Controllers
             var r = positionCell.R;
             var s = positionCell.S;
 
-            // Головная клетка
+            // Всегда добавляем "головную" клетку
             shipCellModels.Add(new CubeCellModel(q, r, s));
 
-            // Вторая клетка (если двухклеточный)
+            // Добавляем вторую клетку (если корабль двухклеточный)
             switch (shipShape)
             {
                 case ShipShape.Single:
+                    // Нет второй клетки
                     break;
 
                 case ShipShape.HorizontalR:
@@ -117,6 +133,48 @@ namespace StarLine2D.Controllers
                     shipCellModels.Add(new CubeCellModel(q + 1, r, s - 1));
                     break;
             }
+
+            // Обновляем позицию по среднему между всеми клетками
+            UpdateVisualPosition();
+        }
+
+        /// <summary>
+        /// Ставит центр корабля в середину всех занимаемых им клеток.
+        /// Если корабль одноклеточный – позиция совпадает с одной клеткой,
+        /// если двухклеточный – будет по центру между ними.
+        /// </summary>
+        private void UpdateVisualPosition()
+        {
+            if (!field)
+            {
+                // Если не нашли FieldController — ничего не делаем
+                return;
+            }
+
+            if (shipCellModels.Count == 0) return;
+
+            Vector3 sumPositions = Vector3.zero;
+            int count = 0;
+
+            // Суммируем координаты всех занятых клеток
+            foreach (var cubeCell in shipCellModels)
+            {
+                var cell = field.FindCellByModel(cubeCell);
+                if (cell != null)
+                {
+                    sumPositions += cell.transform.position;
+                    count++;
+                }
+            }
+
+            if (count > 0)
+            {
+                // Среднее арифметическое
+                transform.position = sumPositions / count;
+            }
+
+            // Масштаб оставляем (1,1,1), чтобы корабль НЕ растягивался
+            transform.localScale = Vector3.one;
         }
 
         public int OnDamage(int inputDamage)
@@ -148,6 +206,55 @@ namespace StarLine2D.Controllers
         {
             shipShape = newShape;
             UpdateShipCellModels();
+        }
+
+        /// <summary>
+        /// Аналогично AsteroidController. Подписка на событие уничтожения
+        /// </summary>
+        public ActionDisposable Subscribe(Action call)
+        {
+            _onDestroy += call;
+            var disposable = new ActionDisposable(() => _onDestroy -= call);
+            _trash.Retain(disposable);
+            return disposable;
+        }
+
+        private void OnDestroy()
+        {
+            // Сначала вызываем все подписки
+            _onDestroy?.Invoke();
+            // Очищаем Disposable
+            _trash?.Dispose();
+        }
+
+        /// <summary>
+        /// Возвращает «относительные» координаты клеток в форме корабля,
+        /// считая (0,0,0) за «головную» клетку.
+        /// Может быть полезно при проверках в PositionManager.
+        /// </summary>
+        public List<CubeCellModel> GetRelativeShapeOffsets()
+        {
+            var offsets = new List<CubeCellModel>
+            {
+                new CubeCellModel(0, 0, 0) // "голова"
+            };
+
+            switch (shipShape)
+            {
+                case ShipShape.Single:
+                    // Нет дополнительных клеток
+                    break;
+
+                case ShipShape.HorizontalR:
+                    offsets.Add(new CubeCellModel(-1, 0, 1));
+                    break;
+
+                case ShipShape.HorizontalL:
+                    offsets.Add(new CubeCellModel(1, 0, -1));
+                    break;
+            }
+
+            return offsets;
         }
     }
 }

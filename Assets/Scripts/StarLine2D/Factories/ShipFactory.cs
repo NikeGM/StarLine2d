@@ -2,223 +2,201 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using StarLine2D.Models;
+using Random = UnityEngine.Random;
 using StarLine2D.Components;
 using StarLine2D.Libraries.Garage;
-using Object = UnityEngine.Object;
-using Random = UnityEngine.Random;
+using StarLine2D.Models;
+using StarLine2D.Utils;
+using StarLine2D.Utils.Disposable;
 
 namespace StarLine2D.Controllers
 {
-    // >>>> Структура для хранения префаба и его типа <<<<
-    [Serializable]
-    public class ShipPrefabData
+    public class ShipFactory : MonoBehaviour
     {
-        public GameObject prefab;
-        public GarageItem.ShipType type;
-    }
-}
+        [SerializeField] private FieldController field;
+        [SerializeField] private ShipController playerPrefab;
+        [SerializeField] private int numberOfAllies = 2;
+        [SerializeField] private int numberOfEnemies = 3;
 
+        [Header("Родитель в иерархии (для кораблей)")]
+        [SerializeField] private Transform parentShips;
 
-namespace StarLine2D.Controllers
-{
-    /// <summary>
-    /// Класс-фабрика для создания кораблей (игрока, союзников, врагов).
-    /// </summary>
-    public class ShipFactory
-    {
-        private ShipController _playerPrefab;
-        private readonly int _numberOfAllies;
-        private readonly int _numberOfEnemies;
+        [Header("PositionManager для проверки формы корабля")]
+        [SerializeField] private PositionManager positionManager;
 
-        public ShipFactory(
-            ShipController playerPrefab,
-            int numberOfAllies,
-            int numberOfEnemies
-        )
+        private readonly List<ShipController> spawnedShips = new();
+        private bool isInitialized = false;
+
+        public ShipController GetPlayerShip()
         {
-            _playerPrefab = playerPrefab;
-            _numberOfAllies = numberOfAllies;
-            _numberOfEnemies = numberOfEnemies;
+            // Удаляем «пустые» ссылки
+            spawnedShips.RemoveAll(ship => ship == null);
+            return spawnedShips.FirstOrDefault(ship => ship.GetComponent<PlayerController>() != null);
+        }
+        
+        public List<ShipController> GetSpawnedShips()
+        {
+            // Удаляем «пустые» ссылки
+            spawnedShips.RemoveAll(ship => ship == null);
+            return spawnedShips;
         }
 
-        /// <summary>
-        /// Основной метод, который спаунит все корабли и возвращает список ShipController.
-        /// </summary>
-        public List<ShipController> SpawnAllShips(FieldController field)
+        public List<ShipController> GetAllies()
         {
-            var ships = new List<ShipController>();
-
-            // Общее количество кораблей: 1 игрок + союзники + враги
-            int totalShipsCount = 1 + _numberOfAllies + _numberOfEnemies;
-
-            // Получаем случайные свободные клетки (по количеству кораблей),
-            // но ещё и убираем те, где есть препятствие!
-            // Простейший вариант: фильтр по HasObstacle == false
-            var allCells = field.Cells
-                .Where(c => !c.HasObstacle)
-                .OrderBy(_ => Random.value)
+            // Удаляем «пустые» ссылки
+            spawnedShips.RemoveAll(ship => ship == null);
+            return spawnedShips
+                .Where(ship => ship.GetComponent<AllyController>() != null)
                 .ToList();
+        }
 
-            if (allCells.Count < totalShipsCount)
+        public List<ShipController> GetEnemies()
+        {
+            // Удаляем «пустые» ссылки
+            spawnedShips.RemoveAll(ship => ship == null);
+            return spawnedShips
+                .Where(ship => ship.GetComponent<EnemyController>() != null)
+                .ToList();
+        }
+
+        private void Update()
+        {
+            if (isInitialized) return;
+            if (CheckReadyToSpawn())
             {
-                Debug.LogError("Не хватает свободных клеток (без препятствий), чтобы разместить все корабли!");
-                return ships;
+                isInitialized = true;
+                SpawnAllShips();
+            }
+        }
+
+        private bool CheckReadyToSpawn()
+        {
+            if (field == null) return false;
+            if (field.Cells == null || field.Cells.Count == 0) return false;
+            if (positionManager == null)
+            {
+                Debug.LogWarning($"[{name}] ShipFactory: не назначен PositionManager! Нельзя проверить форму корабля.");
+                return false;
+            }
+            return true;
+        }
+
+        private void SpawnAllShips()
+        {
+            Debug.Log($"[{name}] ShipFactory: начинаем спавн кораблей.");
+
+            if (playerPrefab == null)
+            {
+                Debug.LogWarning($"{name}: Префаб игрока не задан!");
+                return;
             }
 
-            int cellIndex = 0;
+            // --- Спавн игрока ---
+            SpawnOneShip(playerPrefab, ShipSide.Player);
 
-            var playerCell = allCells[cellIndex++];
-            var playerShipObj = Object.Instantiate(_playerPrefab, Vector3.zero, Quaternion.identity);
-
-            // Привязываем PlayerController и устанавливаем профиль
-            var playerShipController = AddControllerAndProfile(
-                playerShipObj.gameObject,
-                typeof(PlayerController),
-                GarageItem.ShipType.Player
-            );
-
-            // Инициализируем позицию
-            playerShipController.PositionCell = playerCell;
-            playerShipObj.transform.position = GetCellCenter(playerShipController, field);
-            playerShipObj.transform.rotation = Quaternion.Euler(0, 0, 0);
-
-            // Инициализация PlayerController
-            var playerCtrl = playerShipObj.GetComponent<PlayerController>();
-            if (playerCtrl != null)
+            // --- Спавн союзников ---
+            for (int i = 0; i < numberOfAllies; i++)
             {
-                playerCtrl.Initialize(playerShipController);
-            }
-            ships.Add(playerShipController);
-
-            // ----- Спауним союзные корабли -----
-            for (int i = 0; i < _numberOfAllies; i++)
-            {
-                var allyPrefabGo = GarageLibrary.I.GetRandom(GarageItem.ShipType.Ally).Prefab;
-
-                var allyCell = allCells[cellIndex++];
-                var allyObj = Object.Instantiate(allyPrefabGo, Vector3.zero, Quaternion.identity);
-
-                var allyShipController = AddControllerAndProfile(
-                    allyObj.gameObject,
-                    typeof(AllyController),
-                    GarageItem.ShipType.Ally
-                );
-
-                allyShipController.PositionCell = allyCell;
-                allyObj.transform.position = GetCellCenter(allyShipController, field);
-                allyObj.transform.rotation = Quaternion.Euler(0, 0, 0);
-
-                var allyCtrl = allyObj.GetComponent<AllyController>();
-                if (allyCtrl != null)
-                {
-                    allyCtrl.Initialize(allyShipController, field, playerShipController);
-                }
-
-                ships.Add(allyShipController);
+                // Берём случайный префаб союзного корабля
+                var allyPrefab = GarageLibrary.I.GetRandom(GarageItem.ShipType.Ally).Prefab;
+                SpawnOneShip(allyPrefab, ShipSide.Ally);
             }
 
-            // ----- Спауним вражеские корабли -----
-            for (int i = 0; i < _numberOfEnemies; i++)
+            // --- Спавн врагов ---
+            for (int i = 0; i < numberOfEnemies; i++)
             {
-                var enemyPrefabGo = GarageLibrary.I.GetRandom(GarageItem.ShipType.Enemy).Prefab;
-
-                var enemyCell = allCells[cellIndex++];
-                var enemyObj = Object.Instantiate(enemyPrefabGo, Vector3.zero, Quaternion.identity);
-
-                var enemyShipController = AddControllerAndProfile(
-                    enemyObj.gameObject,
-                    typeof(EnemyController),
-                    GarageItem.ShipType.Enemy
-                );
-
-                enemyShipController.PositionCell = enemyCell;
-                enemyObj.transform.position = GetCellCenter(enemyShipController, field);
-                // Враг изначально «смотрит вниз»
-                enemyObj.transform.rotation = Quaternion.Euler(0, 0, 180);
-
-                var enemyCtrl = enemyObj.GetComponent<EnemyController>();
-                if (enemyCtrl != null)
-                {
-                    enemyCtrl.Initialize(enemyShipController, field);
-                }
-
-                ships.Add(enemyShipController);
+                // Берём случайный префаб вражеского корабля
+                var enemyPrefab = GarageLibrary.I.GetRandom(GarageItem.ShipType.Enemy).Prefab;
+                SpawnOneShip(enemyPrefab, ShipSide.Enemy);
             }
 
-            return ships;
+            Debug.Log($"[{name}] Успешно заспавнено {spawnedShips.Count} кораблей.");
         }
 
         /// <summary>
-        /// Создаёт/добавляет нужный контроллер (Player/Ally/Enemy)
-        /// и устанавливает профиль в SpriteCompoundComponent.
+        /// Вспомогательный метод, который спавнит один корабль (игрок, союзник или враг),
+        /// с учётом того, что корабль может занимать две клетки.
         /// </summary>
-        private ShipController AddControllerAndProfile(GameObject shipGo, System.Type controllerType, GarageItem.ShipType shipType)
+        private void SpawnOneShip(ShipController prefab, ShipSide side)
         {
-            // Гарантируем наличие ShipController
-            var shipController = shipGo.GetComponent<ShipController>();
-            if (!shipController)
+            if (prefab == null)
             {
-                shipController = shipGo.AddComponent<ShipController>();
+                Debug.LogError($"[{name}] Не задан префаб корабля для {side}!");
+                return;
             }
 
-            // Добавляем нужный контроллер (Player/Ally/Enemy), если его нет
-            var existingCtrl = shipGo.GetComponent(controllerType);
-            if (existingCtrl == null)
+            // 1) Сначала создаём объект (пока ставим позицию (0,0,0))
+            var instance = Instantiate(prefab, Vector3.zero, Quaternion.identity, parentShips);
+            var shipCtrl = instance.GetComponent<ShipController>();
+            if (shipCtrl == null)
             {
-                shipGo.AddComponent(controllerType);
+                shipCtrl = instance.gameObject.AddComponent<ShipController>();
             }
 
-            // Устанавливаем профиль на основе ShipType
-            var spriteCompound = shipGo.GetComponent<SpriteCompoundComponent>();
-            if (spriteCompound != null)
+            // 2) С помощью PositionManager ищем все валидные клетки для «головной» клетки этого корабля.
+            var possibleCells = positionManager.GetValidHeadCellsForShip(shipCtrl);
+            if (possibleCells == null || possibleCells.Count == 0)
             {
-                // Превращаем enum-значение в строку, совпадающую с Id в инспекторе
-                // Напр. ShipType.Ally -> "ally"
-                var profileId = shipType.ToString().ToLower();
+                Debug.LogError($"[{name}] Невозможно найти подходящую клетку для корабля ({side}), форма: {shipCtrl.ShipShape}!");
+                Destroy(instance);
+                return;
+            }
 
-                // Пробуем установить профиль
-                if (!spriteCompound.SetProfile(profileId))
+            // 3) Случайно выбираем одну из валидных клеток
+            var chosenCell = possibleCells[Random.Range(0, possibleCells.Count)];
+
+            // 4) Ставим корабль в эту клетку
+            instance.transform.position = chosenCell.transform.position;
+            shipCtrl.PositionCell = chosenCell;
+
+            // 5) Дополнительные действия инициализации в зависимости от типа корабля
+            switch (side)
+            {
+                case ShipSide.Player:
                 {
-                    Debug.LogWarning($"{shipGo.name} не имеет профиля {profileId} в SpriteCompoundComponent!");
+                    var playerCtrl = instance.GetComponent<PlayerController>();
+                    if (playerCtrl == null)
+                    {
+                        playerCtrl = instance.gameObject.AddComponent<PlayerController>();
+                    }
+                    playerCtrl.Initialize(shipCtrl);
+                    break;
+                }
+                case ShipSide.Ally:
+                {
+                    var allyCtrl = instance.GetComponent<AllyController>();
+                    if (allyCtrl == null)
+                    {
+                        allyCtrl = instance.gameObject.AddComponent<AllyController>();
+                    }
+                    // Предположим, что союзникам нужно знать поле и корабль-игрок.
+                    // Для упрощения возьмём первый попавшийся корабль игрока из списка.
+                    var playerShip = GetPlayerShip();
+                    allyCtrl.Initialize(shipCtrl, field, playerShip);
+                    break;
+                }
+                case ShipSide.Enemy:
+                {
+                    var enemyCtrl = instance.GetComponent<EnemyController>();
+                    if (enemyCtrl == null)
+                    {
+                        enemyCtrl = instance.gameObject.AddComponent<EnemyController>();
+                    }
+                    enemyCtrl.Initialize(shipCtrl, field);
+                    break;
                 }
             }
-            else
-            {
-                Debug.LogWarning($"{shipGo.name} не имеет SpriteCompoundComponent, не могу сменить профиль!");
-            }
 
-            return shipController;
+            // 6) Подписываемся на уничтожение, чтобы убрать его из списка
+            shipCtrl.Subscribe(() => spawnedShips.Remove(shipCtrl));
+            spawnedShips.Add(shipCtrl);
         }
 
-        /// <summary>
-        /// Определяем позицию в мире, исходя из ячейки.
-        /// </summary>
-        private Vector3 GetCellCenter(ShipController ship, FieldController field)
+        private enum ShipSide
         {
-            if (ship.PositionCell == null)
-                return Vector3.zero;
-
-            var shipCells = ship.ShipCellModels;
-            if (shipCells.Count == 0)
-                return Vector3.zero;
-
-            Vector3 sum = Vector3.zero;
-            int count = 0;
-            foreach (var model in shipCells)
-            {
-                var cell = field.FindCellByModel(model);
-                if (cell != null)
-                {
-                    sum += cell.transform.position;
-                    count++;
-                }
-            }
-
-            if (count == 0)
-                return Vector3.zero;
-
-            return sum / count;
+            Player,
+            Ally,
+            Enemy
         }
     }
 }

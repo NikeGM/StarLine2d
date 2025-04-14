@@ -8,20 +8,20 @@ namespace StarLine2D.Components
     public class HoverableDisplayStateComponent : MonoBehaviour, IHoverable
     {
         private bool _hover = false;
-        private CellsStateController _cellsStateController;
+        private CellsStateManager _cellsStateManager;
 
         private void Awake()
         {
-            // Попытка найти CellsStateController на родительском объекте
+            // Попытка найти CellsStateManager на родительском объекте
             var fieldController = GetComponentInParent<FieldController>();
             if (fieldController != null)
             {
-                _cellsStateController = fieldController.GetComponent<CellsStateController>();
+                _cellsStateManager = fieldController.CellStateManager;
             }
 
-            if (_cellsStateController == null)
+            if (_cellsStateManager == null)
             {
-                Debug.LogError("CellsStateController not found on parent Field GameObject.");
+                Debug.LogError("CellsStateManager not found on parent Field GameObject.");
             }
         }
 
@@ -29,12 +29,12 @@ namespace StarLine2D.Components
         {
             _hover = true;
 
-            if (_cellsStateController != null)
+            if (_cellsStateManager != null)
             {
                 var cellController = GetComponent<CellController>();
                 if (cellController != null)
                 {
-                    _cellsStateController.SetHoveredCell(cellController);
+                    _cellsStateManager.SetHoveredCell(cellController);
                 }
             }
         }
@@ -43,12 +43,12 @@ namespace StarLine2D.Components
         {
             _hover = false;
 
-            if (_cellsStateController != null)
+            if (_cellsStateManager != null)
             {
                 var cellController = GetComponent<CellController>();
                 if (cellController != null)
                 {
-                    _cellsStateController.SetHoveredCell(null);
+                    _cellsStateManager.SetHoveredCell(null);
                 }
             }
         }
